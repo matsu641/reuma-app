@@ -192,12 +192,20 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.quickActionsContainer}>
           <Text style={commonStyles.subtitle}>クイックアクション</Text>
           
-          <QuickActionCard
+          {/* <QuickActionCard
             title="症状を記録"
             subtitle="痛みとこわばりを記録"
             icon="body-outline"
             color={colors.primary}
             onPress={() => setShowSymptomRecorder(true)}
+          /> */}
+
+          <QuickActionCard
+            title="詳細症状記録"
+            subtitle="関節マップで詳細記録"
+            icon="body-outline"
+            color="#9C27B0"
+            onPress={() => navigation.navigate('DetailedSymptom')}
           />
           
           <QuickActionCard
@@ -238,14 +246,6 @@ const HomeScreen = ({ navigation }) => {
             icon="document-text-outline"
             color={colors.warning}
             onPress={() => navigation.navigate('Reports')}
-          />
-          
-          <QuickActionCard
-            title="詳細症状記録"
-            subtitle="関節マップで詳細記録"
-            icon="body-outline"
-            color="#9C27B0"
-            onPress={() => navigation.navigate('DetailedSymptom')}
           />
           
           <QuickActionCard

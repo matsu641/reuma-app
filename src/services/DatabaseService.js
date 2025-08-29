@@ -3,15 +3,34 @@ import * as SQLite from 'expo-sqlite';
 class DatabaseService {
   constructor() {
     this.db = null;
+    this.isInitialized = false;
+    this.initPromise = null;
   }
 
   async init() {
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this._performInit();
+    return this.initPromise;
+  }
+
+  async _performInit() {
     try {
       this.db = await SQLite.openDatabaseAsync('rheuma_app.db');
       await this.createTables();
+      this.isInitialized = true;
       console.log('Database initialized successfully');
     } catch (error) {
       console.error('Database initialization error:', error);
+      throw error;
+    }
+  }
+
+  async ensureInitialized() {
+    if (!this.isInitialized) {
+      await this.init();
     }
   }
 
@@ -75,6 +94,8 @@ class DatabaseService {
 
   // 症状記録の追加
   async addSymptomLog(date, painScore, morningStiffnessDuration, notes = '') {
+    await this.ensureInitialized();
+    
     const query = `
       INSERT INTO symptom_logs (date, pain_score, morning_stiffness_duration, notes)
       VALUES (?, ?, ?, ?)
@@ -91,6 +112,8 @@ class DatabaseService {
 
   // 服薬記録の追加
   async addMedicationLog(date, time, medicationName, dosage, taken, scheduledTime) {
+    await this.ensureInitialized();
+    
     const query = `
       INSERT INTO medication_logs (date, time, medication_name, dosage, taken, scheduled_time)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -107,6 +130,8 @@ class DatabaseService {
 
   // 検査値の追加
   async addLabValue(date, crpValue, esrValue, mmp3Value, notes = '') {
+    await this.ensureInitialized();
+    
     const query = `
       INSERT INTO lab_values (date, crp_value, esr_value, mmp3_value, notes)
       VALUES (?, ?, ?, ?, ?)
@@ -123,6 +148,8 @@ class DatabaseService {
 
   // 症状記録の取得
   async getSymptomLogs(startDate, endDate) {
+    await this.ensureInitialized();
+    
     const query = `
       SELECT * FROM symptom_logs
       WHERE date BETWEEN ? AND ?
@@ -140,6 +167,8 @@ class DatabaseService {
 
   // 服薬記録の取得
   async getMedicationLogs(startDate, endDate) {
+    await this.ensureInitialized();
+    
     const query = `
       SELECT * FROM medication_logs
       WHERE date BETWEEN ? AND ?
@@ -157,6 +186,7 @@ class DatabaseService {
 
   // 検査値の取得
   async getLabValues(startDate, endDate) {
+    await this.ensureInitialized();
     const query = `
       SELECT * FROM lab_values
       WHERE date BETWEEN ? AND ?
@@ -174,6 +204,8 @@ class DatabaseService {
 
   // 薬剤の追加
   async addMedication(name, dosage, frequency, times) {
+    await this.ensureInitialized();
+    
     const query = `
       INSERT INTO medications (name, dosage, frequency, times)
       VALUES (?, ?, ?, ?)
@@ -188,8 +220,10 @@ class DatabaseService {
     }
   }
 
-  // 活動中の薬剤の取得
-  async getActiveMedications() {
+  // 薬剤一覧の取得
+  async getMedications() {
+    await this.ensureInitialized();
+    
     const query = `
       SELECT * FROM medications
       WHERE active = 1
@@ -210,6 +244,8 @@ class DatabaseService {
 
   // 服薬遵守率の計算
   async getMedicationAdherence(startDate, endDate) {
+    await this.ensureInitialized();
+    
     const query = `
       SELECT 
         COUNT(*) as total,
@@ -228,6 +264,26 @@ class DatabaseService {
       };
     } catch (error) {
       console.error('Error calculating medication adherence:', error);
+      throw error;
+    }
+  }
+
+  // 現在服用中の薬剤を取得（食品相互作用チェック用）
+  async getActiveMedications() {
+    await this.ensureInitialized();
+    
+    const query = `
+      SELECT DISTINCT medication_name as name, dosage
+      FROM medication_logs
+      WHERE date >= date('now', '-7 days')
+      ORDER BY medication_name
+    `;
+    
+    try {
+      const result = await this.db.getAllAsync(query);
+      return result;
+    } catch (error) {
+      console.error('Error getting active medications:', error);
       throw error;
     }
   }

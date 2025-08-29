@@ -15,6 +15,8 @@ import AddMedicationScreen from './src/screens/AddMedicationScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PressureHistoryScreen from './src/screens/PressureHistoryScreen';
 import WeatherSettingsScreen from './src/screens/WeatherSettingsScreen';
+import FoodLogScreen from './src/screens/FoodLogScreen';
+import FoodHistoryScreen from './src/screens/FoodHistoryScreen';
 
 // Services
 import DatabaseService from './src/services/DatabaseService';
@@ -61,6 +63,8 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="PressureHistory" component={PressureHistoryScreen} />
           <Stack.Screen name="WeatherSettings" component={WeatherSettingsScreen} />
+          <Stack.Screen name="FoodLog" component={FoodLogScreen} />
+          <Stack.Screen name="FoodHistory" component={FoodHistoryScreen} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>

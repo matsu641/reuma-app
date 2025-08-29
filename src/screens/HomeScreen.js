@@ -106,7 +106,7 @@ const HomeScreen = ({ navigation }) => {
       const todaySymptom = symptoms.length > 0 ? symptoms[0] : null;
       
       // 今日の服薬状況を取得
-      const medications = await DatabaseService.getActiveMedications();
+      const medications = await DatabaseService.getMedications();
       const medicationLogs = await DatabaseService.getMedicationLogs(today, today);
       
       let totalScheduled = 0;
@@ -206,6 +206,14 @@ const HomeScreen = ({ navigation }) => {
             icon="medical-outline"
             color={colors.secondary}
             onPress={() => navigation.navigate('Medication')}
+          />
+          
+          <QuickActionCard
+            title="食事管理"
+            subtitle="薬物相互作用をチェック"
+            icon="restaurant-outline"
+            color="#FF6B35"
+            onPress={() => navigation.navigate('FoodLog')}
           />
           
           <QuickActionCard

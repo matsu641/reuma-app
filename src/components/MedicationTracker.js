@@ -134,7 +134,7 @@ const MedicationTracker = ({ onRecorded }) => {
 
   const loadMedications = async () => {
     try {
-      const meds = await DatabaseService.getActiveMedications();
+      const meds = await DatabaseService.getMedications();
       setMedications(meds);
     } catch (error) {
       console.error('Error loading medications:', error);
@@ -210,7 +210,7 @@ const QuickMedicationLogger = ({ onRecorded }) => {
 
   const loadMedications = async () => {
     try {
-      const meds = await DatabaseService.getActiveMedications();
+      const meds = await DatabaseService.getMedications();
       setMedications(meds);
     } catch (error) {
       console.error('Error loading medications:', error);

@@ -240,6 +240,13 @@ const SettingsScreen = ({ navigation }) => {
             icon="list-outline"
             onPress={() => Alert.alert('準備中', '薬剤一覧機能は今後追加予定です。')}
           />
+
+          <SettingItem
+            title="食事履歴"
+            subtitle="薬物相互作用の記録を確認"
+            icon="restaurant-outline"
+            onPress={() => navigation.navigate('FoodHistory')}
+          />
         </View>
 
         {/* データ管理 */}

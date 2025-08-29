@@ -1,10 +1,29 @@
 import * as SQLite from 'expo-sqlite';
+import FirestoreService from './FirestoreService';
+import { auth } from '../../firebaseConfig';
 
 class DatabaseService {
   constructor() {
     this.db = null;
     this.isInitialized = false;
     this.initPromise = null;
+    this.useFirestore = false; // Firestore使用フラグ
+  }
+
+  // Firestoreモードの切り替え
+  setFirestoreMode(enabled = true) {
+    this.useFirestore = enabled;
+    console.log(`Database mode switched to: ${enabled ? 'Firestore' : 'SQLite'}`);
+  }
+
+  // ユーザーがログインしているかチェック
+  isUserLoggedIn() {
+    return auth.currentUser !== null;
+  }
+
+  // データベースモードの自動判定
+  shouldUseFirestore() {
+    return this.useFirestore && this.isUserLoggedIn();
   }
 
   async init() {
@@ -94,6 +113,10 @@ class DatabaseService {
 
   // 症状記録の追加
   async addSymptomLog(date, painScore, morningStiffnessDuration, notes = '') {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.addSymptomLog(date, painScore, morningStiffnessDuration, notes);
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -112,6 +135,10 @@ class DatabaseService {
 
   // 服薬記録の追加
   async addMedicationLog(date, time, medicationName, dosage, taken, scheduledTime) {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.addMedicationLog(date, time, medicationName, dosage, taken, scheduledTime);
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -130,6 +157,10 @@ class DatabaseService {
 
   // 検査値の追加
   async addLabValue(date, crpValue, esrValue, mmp3Value, notes = '') {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.addLabValue(date, crpValue, esrValue, mmp3Value, notes);
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -148,6 +179,10 @@ class DatabaseService {
 
   // 症状記録の取得
   async getSymptomLogs(startDate, endDate) {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.getSymptomLogs(startDate, endDate);
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -167,6 +202,10 @@ class DatabaseService {
 
   // 服薬記録の取得
   async getMedicationLogs(startDate, endDate) {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.getMedicationLogs(startDate, endDate);
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -186,6 +225,10 @@ class DatabaseService {
 
   // 検査値の取得
   async getLabValues(startDate, endDate) {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.getLabValues(startDate, endDate);
+    }
+    
     await this.ensureInitialized();
     const query = `
       SELECT * FROM lab_values
@@ -204,6 +247,10 @@ class DatabaseService {
 
   // 薬剤の追加
   async addMedication(name, dosage, frequency, times) {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.addMedication(name, dosage, frequency, times);
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -222,6 +269,10 @@ class DatabaseService {
 
   // 薬剤一覧の取得
   async getMedications() {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.getMedications();
+    }
+    
     await this.ensureInitialized();
     
     const query = `
@@ -244,6 +295,10 @@ class DatabaseService {
 
   // 服薬遵守率の計算
   async getMedicationAdherence(startDate, endDate) {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.getMedicationAdherence(startDate, endDate);
+    }
+    
     await this.ensureInitialized();
     
     const query = `

@@ -283,6 +283,13 @@ const SettingsScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>データ管理</Text>
           
           <SettingItem
+            title="Firestoreに移行"
+            subtitle="クラウドでデータを同期"
+            icon="cloud-upload-outline"
+            onPress={() => navigation.navigate('DataMigration')}
+          />
+          
+          <SettingItem
             title="データエクスポート"
             subtitle="データをバックアップ"
             icon="download-outline"

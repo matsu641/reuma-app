@@ -23,9 +23,11 @@ import FoodHistoryScreen from './src/screens/FoodHistoryScreen';
 import MedicationListScreen from './src/screens/MedicationListScreen';
 import DetailedSymptomScreen from './src/screens/DetailedSymptomScreen';
 import LifePatternAnalysisScreen from './src/screens/LifePatternAnalysisScreen';
+import DataMigrationScreen from './src/screens/DataMigrationScreen';
 
 // Services
 import DatabaseService from './src/services/DatabaseService';
+import FirestoreService from './src/services/FirestoreService';
 import NotificationService from './src/services/NotificationService';
 
 const Stack = createStackNavigator();
@@ -38,9 +40,27 @@ export default function App() {
     initializeApp();
     
     // 認証状態の監視
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('認証状態変更:', user ? user.email : 'ログアウト');
       setUser(user);
+      
+      // ログイン時にFirestoreモードに切り替え
+      if (user) {
+        try {
+          DatabaseService.setFirestoreMode(true);
+          await FirestoreService.createUserProfile();
+          console.log('✅ Firestore mode enabled for user:', user.email);
+        } catch (error) {
+          console.error('❌ User profile creation error:', error);
+          // Firestoreでエラーが発生した場合はSQLiteモードにフォールバック
+          DatabaseService.setFirestoreMode(false);
+          console.log('🔄 Fallback to SQLite mode due to Firestore error');
+        }
+      } else {
+        DatabaseService.setFirestoreMode(false);
+        console.log('📱 SQLite mode enabled (user logged out)');
+      }
+      
       setIsLoading(false);
     });
 
@@ -98,6 +118,7 @@ export default function App() {
               <Stack.Screen name="MedicationList" component={MedicationListScreen} />
               <Stack.Screen name="DetailedSymptom" component={DetailedSymptomScreen} />
               <Stack.Screen name="LifePatternAnalysis" component={LifePatternAnalysisScreen} />
+              <Stack.Screen name="DataMigration" component={DataMigrationScreen} />
             </>
           ) : (
             // 未ログインの場合のスタック

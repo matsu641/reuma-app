@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  FlatList,
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -217,17 +216,15 @@ const MedicationTracker = ({ onRecorded, navigation }) => {
           </View>
         </View>
         
-        <FlatList
-          data={medications}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
+        <View>
+          {medications.map((item) => (
             <MedicationItem
+              key={item.id.toString()}
               medication={item}
               onTaken={handleMedicationTaken}
             />
-          )}
-          showsVerticalScrollIndicator={false}
-        />
+          ))}
+        </View>
       </View>
     </View>
   );

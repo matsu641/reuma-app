@@ -30,10 +30,12 @@ const StatCard = ({ label, value, unit, trend, color = colors.textPrimary }) => 
   <View style={styles.statCard}>
     <Text style={styles.statLabel}>{label}</Text>
     <View style={styles.statValueContainer}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={[styles.statValue, { color }]}>
+        {value !== undefined && value !== null ? value.toString() : '---'}
+      </Text>
       {unit && <Text style={styles.statUnit}>{unit}</Text>}
     </View>
-    {trend && (
+    {trend !== undefined && trend !== null && (
       <View style={styles.trendContainer}>
         <Ionicons 
           name={trend > 0 ? "trending-up" : trend < 0 ? "trending-down" : "remove"} 
@@ -90,19 +92,24 @@ const ReportsScreen = ({ navigation }) => {
   };
 
   const analyzeData = (symptoms, medications, labValues, adherence) => {
-    // 症状分析
-    const avgPainScore = symptoms.length > 0 ? 
-      symptoms.reduce((sum, s) => sum + s.pain_score, 0) / symptoms.length : 0;
+    // 症状分析（空配列チェック）
+    const validSymptoms = Array.isArray(symptoms) ? symptoms.filter(s => s && s.pain_score !== undefined) : [];
+    const avgPainScore = validSymptoms.length > 0 ? 
+      validSymptoms.reduce((sum, s) => sum + (s.pain_score || 0), 0) / validSymptoms.length : 0;
     
-    const avgStiffness = symptoms.length > 0 ? 
-      symptoms.reduce((sum, s) => sum + (s.morning_stiffness_duration || 0), 0) / symptoms.length : 0;
+    const avgStiffness = validSymptoms.length > 0 ? 
+      validSymptoms.reduce((sum, s) => sum + (s.morning_stiffness_duration || 0), 0) / validSymptoms.length : 0;
 
-    const recordDays = symptoms.length;
+    const recordDays = validSymptoms.length;
     const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
     const recordRate = totalDays > 0 ? (recordDays / totalDays) * 100 : 0;
 
-    // 検査値分析
-    const latestLabValues = labValues.length > 0 ? labValues[0] : null;
+    // 検査値分析（安全にアクセス）
+    const validLabValues = Array.isArray(labValues) ? labValues.filter(l => l) : [];
+    const latestLabValues = validLabValues.length > 0 ? validLabValues[0] : null;
+
+    // 服薬遵守データの安全な取得
+    const safeAdherence = adherence || { adherence: 0, total: 0, taken: 0 };
 
     return {
       period: {
@@ -112,29 +119,34 @@ const ReportsScreen = ({ navigation }) => {
       },
       symptoms: {
         recordDays,
-        recordRate,
-        avgPainScore: avgPainScore.toFixed(1),
+        recordRate: Math.round(recordRate * 10) / 10, // 小数点1桁に丸める
+        avgPainScore: Math.round(avgPainScore * 10) / 10,
         avgStiffness: Math.round(avgStiffness),
-        trend: calculateTrend(symptoms, 'pain_score')
+        trend: calculateTrend(validSymptoms, 'pain_score')
       },
       medication: {
-        adherence: adherence.adherence || 0,
-        totalScheduled: adherence.total || 0,
-        totalTaken: adherence.taken || 0
+        adherence: Math.round((safeAdherence.adherence || 0) * 10) / 10,
+        totalScheduled: safeAdherence.total || 0,
+        totalTaken: safeAdherence.taken || 0
       },
       labValues: latestLabValues,
-      recommendations: generateRecommendations(avgPainScore, adherence.adherence || 0, recordRate)
+      recommendations: generateRecommendations(avgPainScore, safeAdherence.adherence || 0, recordRate)
     };
   };
 
   const calculateTrend = (data, field) => {
-    if (data.length < 2) return 0;
+    if (!Array.isArray(data) || data.length < 2) return 0;
     
-    const recent = data.slice(0, Math.ceil(data.length / 2));
-    const older = data.slice(Math.ceil(data.length / 2));
+    const validData = data.filter(item => item && typeof item[field] === 'number');
+    if (validData.length < 2) return 0;
     
-    const recentAvg = recent.reduce((sum, item) => sum + item[field], 0) / recent.length;
-    const olderAvg = older.reduce((sum, item) => sum + item[field], 0) / older.length;
+    const recent = validData.slice(0, Math.ceil(validData.length / 2));
+    const older = validData.slice(Math.ceil(validData.length / 2));
+    
+    if (recent.length === 0 || older.length === 0) return 0;
+    
+    const recentAvg = recent.reduce((sum, item) => sum + (item[field] || 0), 0) / recent.length;
+    const olderAvg = older.reduce((sum, item) => sum + (item[field] || 0), 0) / older.length;
     
     if (recentAvg > olderAvg + 0.5) return 1; // 悪化
     if (recentAvg < olderAvg - 0.5) return -1; // 改善
@@ -289,29 +301,39 @@ ${data.recommendations.map(rec => `・${rec}`).join('\n')}
       )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {reportData && (
+        {!reportData ? (
+          <View style={styles.noDataContainer}>
+            <Ionicons name="document-text-outline" size={64} color={colors.textSecondary} />
+            <Text style={styles.noDataText}>
+              選択した期間のデータがありません
+            </Text>
+            <Text style={styles.noDataSubtext}>
+              症状や服薬の記録を追加してください
+            </Text>
+          </View>
+        ) : (
           <>
             <ReportSection title="症状記録サマリー" icon="body-outline">
               <View style={styles.statsGrid}>
                 <StatCard
                   label="記録日数"
-                  value={reportData.symptoms.recordDays}
+                  value={reportData.symptoms?.recordDays || 0}
                   unit="日"
                 />
                 <StatCard
                   label="記録率"
-                  value={Math.round(reportData.symptoms.recordRate)}
+                  value={Math.round(reportData.symptoms?.recordRate || 0)}
                   unit="%"
                 />
                 <StatCard
                   label="平均痛みレベル"
-                  value={reportData.symptoms.avgPainScore}
+                  value={reportData.symptoms?.avgPainScore || 0}
                   unit="/10"
-                  trend={reportData.symptoms.trend}
+                  trend={reportData.symptoms?.trend}
                 />
                 <StatCard
                   label="平均こわばり時間"
-                  value={reportData.symptoms.avgStiffness}
+                  value={reportData.symptoms?.avgStiffness || 0}
                   unit="分"
                 />
               </View>
@@ -321,18 +343,18 @@ ${data.recommendations.map(rec => `・${rec}`).join('\n')}
               <View style={styles.statsGrid}>
                 <StatCard
                   label="遵守率"
-                  value={Math.round(reportData.medication.adherence)}
+                  value={Math.round(reportData.medication?.adherence || 0)}
                   unit="%"
-                  color={reportData.medication.adherence >= 85 ? colors.success : colors.warning}
+                  color={(reportData.medication?.adherence || 0) >= 85 ? colors.success : colors.warning}
                 />
                 <StatCard
                   label="予定回数"
-                  value={reportData.medication.totalScheduled}
+                  value={reportData.medication?.totalScheduled || 0}
                   unit="回"
                 />
                 <StatCard
                   label="服用回数"
-                  value={reportData.medication.totalTaken}
+                  value={reportData.medication?.totalTaken || 0}
                   unit="回"
                 />
               </View>
@@ -342,7 +364,7 @@ ${data.recommendations.map(rec => `・${rec}`).join('\n')}
               <ReportSection title="最新検査値" icon="analytics-outline">
                 <View style={styles.labValuesContainer}>
                   <Text style={styles.labDate}>
-                    検査日: {formatDateJapanese(new Date(reportData.labValues.date))}
+                    検査日: {reportData.labValues.date ? formatDateJapanese(new Date(reportData.labValues.date)) : '未記録'}
                   </Text>
                   <View style={styles.statsGrid}>
                     {reportData.labValues.crp_value && (
@@ -373,10 +395,10 @@ ${data.recommendations.map(rec => `・${rec}`).join('\n')}
 
             <ReportSection title="推奨事項" icon="bulb-outline">
               <View style={styles.recommendationsContainer}>
-                {reportData.recommendations.map((rec, index) => (
+                {(reportData.recommendations || []).map((rec, index) => (
                   <View key={index} style={styles.recommendationItem}>
                     <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                    <Text style={styles.recommendationText}>{rec}</Text>
+                    <Text style={styles.recommendationText}>{rec || ''}</Text>
                   </View>
                 ))}
               </View>
@@ -569,6 +591,30 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginLeft: spacing.sm,
     lineHeight: 16,
+  },
+  
+  noDataContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl * 2,
+    paddingHorizontal: spacing.lg,
+  },
+  
+  noDataText: {
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  
+  noDataSubtext: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

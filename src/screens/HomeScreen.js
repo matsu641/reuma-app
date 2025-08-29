@@ -12,7 +12,6 @@ import { colors, spacing, fontSize, commonStyles } from '../utils/styles';
 import { formatDateJapanese, formatDate } from '../utils/dateUtils';
 import DatabaseService from '../services/DatabaseService';
 import SymptomRecorder from '../components/SymptomRecorder';
-import { MedicationTracker } from '../components/MedicationTracker';
 import WeatherWidget from '../components/WeatherWidget';
 
 const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (

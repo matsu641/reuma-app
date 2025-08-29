@@ -1,11 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Alert } from 'react-native';
+import { Alert, View, ActivityIndicator } from 'react-native';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebaseConfig.js';
 
 // Screens
+import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MedicationScreen from './src/screens/MedicationScreen';
 import LabValuesScreen from './src/screens/LabValuesScreen';
@@ -28,8 +31,20 @@ import NotificationService from './src/services/NotificationService';
 const Stack = createStackNavigator();
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     initializeApp();
+    
+    // 認証状態の監視
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('認証状態変更:', user ? user.email : 'ログアウト');
+      setUser(user);
+      setIsLoading(false);
+    });
+
+    return unsubscribe; // クリーンアップ
   }, []);
 
   const initializeApp = async () => {
@@ -47,32 +62,49 @@ export default function App() {
     }
   };
 
+  // ローディング中の表示
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName="Home"
+          initialRouteName={user ? "Home" : "Login"}
           screenOptions={{
             headerShown: false,
-            cardStyle: { backgroundColor: '#ffffff' },
           }}
         >
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Medication" component={MedicationScreen} />
-          <Stack.Screen name="LabValues" component={LabValuesScreen} />
-          <Stack.Screen name="Charts" component={ChartsScreen} />
-          <Stack.Screen name="Reports" component={ReportsScreen} />
-          <Stack.Screen name="AddMedication" component={AddMedicationScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="PressureHistory" component={PressureHistoryScreen} />
-          <Stack.Screen name="WeatherSettings" component={WeatherSettingsScreen} />
-          <Stack.Screen name="FoodLog" component={FoodLogScreen} />
-          <Stack.Screen name="FoodHistory" component={FoodHistoryScreen} />
-          <Stack.Screen name="MedicationList" component={MedicationListScreen} />
-          <Stack.Screen name="DetailedSymptom" component={DetailedSymptomScreen} />
-          <Stack.Screen name="LifePatternAnalysis" component={LifePatternAnalysisScreen} />
+          {/* 認証状態によって画面を分岐 */}
+          {user ? (
+            // ログイン済みの場合のスタック
+            <>
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Medication" component={MedicationScreen} />
+              <Stack.Screen name="LabValues" component={LabValuesScreen} />
+              <Stack.Screen name="Charts" component={ChartsScreen} />
+              <Stack.Screen name="Reports" component={ReportsScreen} />
+              <Stack.Screen name="AddMedication" component={AddMedicationScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="PressureHistory" component={PressureHistoryScreen} />
+              <Stack.Screen name="WeatherSettings" component={WeatherSettingsScreen} />
+              <Stack.Screen name="FoodLog" component={FoodLogScreen} />
+              <Stack.Screen name="FoodHistory" component={FoodHistoryScreen} />
+              <Stack.Screen name="MedicationList" component={MedicationListScreen} />
+              <Stack.Screen name="DetailedSymptom" component={DetailedSymptomScreen} />
+              <Stack.Screen name="LifePatternAnalysis" component={LifePatternAnalysisScreen} />
+            </>
+          ) : (
+            // 未ログインの場合のスタック
+            <Stack.Screen name="Login" component={LoginScreen} />
+          )}
         </Stack.Navigator>
-        <StatusBar style="dark" />
+        <StatusBar style="auto" />
       </NavigationContainer>
     </SafeAreaProvider>
   );

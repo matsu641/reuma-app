@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebaseConfig.js';
 import { colors, spacing, fontSize, commonStyles } from '../utils/styles';
 import NotificationService from '../services/NotificationService';
 
@@ -160,6 +162,33 @@ const SettingsScreen = ({ navigation }) => {
     );
   };
 
+  // ログアウト機能
+  const handleLogout = () => {
+    Alert.alert(
+      'ログアウト',
+      'ログアウトしますか？',
+      [
+        {
+          text: 'キャンセル',
+          style: 'cancel'
+        },
+        {
+          text: 'ログアウト',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(auth);
+              console.log('ログアウトしました');
+            } catch (error) {
+              console.error('ログアウトエラー:', error);
+              Alert.alert('エラー', 'ログアウトに失敗しました。');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={commonStyles.container}>
       <View style={styles.header}>
@@ -298,6 +327,18 @@ const SettingsScreen = ({ navigation }) => {
             subtitle="バージョン情報"
             icon="information-circle-outline"
             onPress={handleAbout}
+          />
+        </View>
+
+        {/* アカウント */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>アカウント</Text>
+          
+          <SettingItem
+            title="ログアウト"
+            subtitle="アプリからログアウト"
+            icon="log-out-outline"
+            onPress={handleLogout}
           />
         </View>
 

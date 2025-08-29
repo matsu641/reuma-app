@@ -239,6 +239,22 @@ const HomeScreen = ({ navigation }) => {
             color={colors.warning}
             onPress={() => navigation.navigate('Reports')}
           />
+          
+          <QuickActionCard
+            title="詳細症状記録"
+            subtitle="関節マップで詳細記録"
+            icon="body-outline"
+            color="#9C27B0"
+            onPress={() => navigation.navigate('DetailedSymptom')}
+          />
+          
+          <QuickActionCard
+            title="生活パターン分析"
+            subtitle="症状との相関を分析"
+            icon="analytics"
+            color="#E91E63"
+            onPress={() => navigation.navigate('LifePatternAnalysis')}
+          />
         </View>
 
         {/* 天気と気圧情報 */}

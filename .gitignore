@@ -35,3 +35,22 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Firebase configuration files (contain sensitive API keys)
+firebaseConfig.js
+GoogleService-Info.plist
+google-services.json
+
+# Android build files
+android/build/
+android/app/build/
+
+# iOS build files
+ios/build/
+
+# Local database files
+*.db
+*.db-journal
+
+# Logs
+*.log

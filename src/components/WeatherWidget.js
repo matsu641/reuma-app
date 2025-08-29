@@ -208,10 +208,13 @@ const WeatherWidget = ({ navigation }) => {
       // 気圧アラートをチェック
       const alert = await WeatherService.checkPressureAlert(weatherData.pressure);
       if (alert) {
+        console.log('📢 New pressure alert triggered:', alert);
         setPressureAlert(alert);
         
         // プッシュ通知を送信
         await NotificationService.schedulePressureAlert(alert.message);
+      } else {
+        console.log('🔕 No pressure alert (duplicate or threshold not met)');
       }
     } catch (error) {
       console.error('Weather load error:', error);

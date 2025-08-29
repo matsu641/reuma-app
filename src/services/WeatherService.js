@@ -139,7 +139,7 @@ class WeatherService {
     }
   }
 
-  // 気圧の急変をチェック
+  // 気圧の急変をチェック（重複通知防止機能付き）
   async checkPressureAlert(currentPressure) {
     try {
       const history = await this.getPressureHistory();
@@ -147,10 +147,6 @@ class WeatherService {
       if (history.length < 2) {
         return null;
       }
-
-      // 最新の記録と比較
-      const previousEntry = history[history.length - 1];
-      const pressureChange = currentPressure - previousEntry.pressure;
 
       // 過去3時間以内の最高気圧と比較
       const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
@@ -163,12 +159,28 @@ class WeatherService {
         const totalChange = currentPressure - maxPressure;
 
         if (totalChange <= this.pressureThreshold) {
-          return {
+          // 最後に通知した気圧変化を取得
+          const lastNotifiedAlert = await this.getLastNotifiedAlert();
+          
+          // 同じような気圧変化で既に通知済みかチェック
+          if (await this.shouldSkipDuplicateAlert(totalChange, lastNotifiedAlert)) {
+            console.log('🔕 Skipping duplicate pressure alert');
+            return null;
+          }
+
+          const alert = {
             type: 'pressure_drop',
             change: totalChange,
             message: `気圧が${Math.abs(totalChange).toFixed(1)}hPa急降下しています。症状の変化にご注意ください。`,
             severity: totalChange <= -5 ? 'high' : 'medium',
+            timestamp: new Date().toISOString(),
+            pressure: currentPressure,
           };
+
+          // 通知記録を保存
+          await this.saveLastNotifiedAlert(alert);
+          
+          return alert;
         }
       }
 
@@ -176,6 +188,64 @@ class WeatherService {
     } catch (error) {
       console.error('Check pressure alert error:', error);
       return null;
+    }
+  }
+
+  // 最後に通知したアラートを取得
+  async getLastNotifiedAlert() {
+    try {
+      const lastAlert = await AsyncStorage.getItem('last_notified_alert');
+      return lastAlert ? JSON.parse(lastAlert) : null;
+    } catch (error) {
+      console.error('Get last notified alert error:', error);
+      return null;
+    }
+  }
+
+  // 最後に通知したアラートを保存
+  async saveLastNotifiedAlert(alert) {
+    try {
+      await AsyncStorage.setItem('last_notified_alert', JSON.stringify(alert));
+    } catch (error) {
+      console.error('Save last notified alert error:', error);
+    }
+  }
+
+  // 重複アラートをスキップすべきかチェック
+  async shouldSkipDuplicateAlert(currentChange, lastNotifiedAlert) {
+    if (!lastNotifiedAlert) return false;
+
+    const now = new Date();
+    const lastNotifiedTime = new Date(lastNotifiedAlert.timestamp);
+    const timeDiff = now - lastNotifiedTime;
+
+    // 1時間以内の場合
+    if (timeDiff < 60 * 60 * 1000) {
+      // 同じような気圧変化（±1hPa以内）の場合はスキップ
+      const changeDiff = Math.abs(currentChange - lastNotifiedAlert.change);
+      if (changeDiff <= 1.0) {
+        return true;
+      }
+    }
+
+    // 30分以内の場合は、より厳格にチェック
+    if (timeDiff < 30 * 60 * 1000) {
+      const changeDiff = Math.abs(currentChange - lastNotifiedAlert.change);
+      if (changeDiff <= 2.0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // アラート履歴をクリア（設定画面から呼び出し用）
+  async clearAlertHistory() {
+    try {
+      await AsyncStorage.removeItem('last_notified_alert');
+      console.log('Alert history cleared');
+    } catch (error) {
+      console.error('Clear alert history error:', error);
     }
   }
 

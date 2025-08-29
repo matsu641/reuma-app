@@ -131,6 +131,27 @@ class NotificationService {
     }
   }
 
+  // 気圧変化アラート通知をスケジュール
+  async schedulePressureAlert(message) {
+    try {
+      // 即座に通知を送信
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '🌀 気圧変化アラート',
+          body: message,
+          sound: 'default',
+        },
+        trigger: {
+          seconds: 1,
+        },
+      });
+
+      console.log('Pressure alert notification scheduled:', message);
+    } catch (error) {
+      console.error('Error scheduling pressure alert:', error);
+    }
+  }
+
   // スケジュールされた通知の一覧を取得
   async getScheduledNotifications() {
     try {

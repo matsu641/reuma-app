@@ -13,6 +13,7 @@ import { formatDateJapanese, formatDate } from '../utils/dateUtils';
 import DatabaseService from '../services/DatabaseService';
 import SymptomRecorder from '../components/SymptomRecorder';
 import { MedicationTracker } from '../components/MedicationTracker';
+import WeatherWidget from '../components/WeatherWidget';
 
 const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (
   <TouchableOpacity style={styles.quickActionCard} onPress={onPress}>
@@ -231,6 +232,9 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Reports')}
           />
         </View>
+
+        {/* 天気と気圧情報 */}
+        <WeatherWidget navigation={navigation} />
       </ScrollView>
     </View>
   );

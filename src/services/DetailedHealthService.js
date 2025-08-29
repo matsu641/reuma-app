@@ -3,23 +3,68 @@ import DatabaseService from './DatabaseService';
 
 class DetailedHealthService {
   constructor() {
-    // 関節の部位定義
+    // 関節の部位定義（人体図の前面・背面に合わせた座標）
+    // 前面（左側の人体図）の関節位置
+    this.frontJointAreas = {
+      // 頭部・頸部
+      neck: { label: '頸椎', category: '体幹', x: 22, y: 12, size: 'small' },
+      
+      // 上肢（前面から見た左右）
+      left_shoulder: { label: '左肩関節', category: '上肢', x: 32, y: 25, size: 'large' },
+      right_shoulder: { label: '右肩関節', category: '上肢', x: 13, y: 25, size: 'large' },
+      left_elbow: { label: '左肘関節', category: '上肢', x: 35, y: 38, size: 'medium' },
+      right_elbow: { label: '右肘関節', category: '上肢', x: 11, y: 38, size: 'medium' },
+      left_wrist: { label: '左手首', category: '上肢', x: 43, y: 48, size: 'small' },
+      right_wrist: { label: '右手首', category: '上肢', x: 5, y: 48, size: 'small' },
+      left_fingers: { label: '左指関節', category: '上肢', x: 44, y: 53, size: 'small' },
+      right_fingers: { label: '右指関節', category: '上肢', x: 3, y: 53, size: 'small' },
+      
+      // 体幹（前面）
+      chest: { label: '胸部', category: '体幹', x: 23, y: 32, size: 'medium' },
+      abdomen: { label: '腹部', category: '体幹', x: 23, y: 43, size: 'medium' },
+      
+      // 下肢（前面から見た左右）
+      left_hip: { label: '左股関節', category: '下肢', x: 29, y: 58, size: 'large' },
+      right_hip: { label: '右股関節', category: '下肢', x: 17, y: 58, size: 'large' },
+      left_knee: { label: '左膝関節', category: '下肢', x: 29, y: 68, size: 'medium' },
+      right_knee: { label: '右膝関節', category: '下肢', x: 17, y: 68, size: 'medium' },
+      left_ankle: { label: '左足首', category: '下肢', x: 30, y: 82, size: 'small' },
+      right_ankle: { label: '右足首', category: '下肢', x: 16, y: 82, size: 'small' },
+      left_toes: { label: '左足趾関節', category: '下肢', x: 32, y: 89, size: 'small' },
+      right_toes: { label: '右足趾関節', category: '下肢', x: 15, y: 89, size: 'small' },
+    };
+
+    // 背面（右側の人体図）の関節位置
+    this.backJointAreas = {
+      // 頭部・頸部（背面）
+      neck_back: { label: '頸椎（後面）', category: '体幹', x: 75, y: 12, size: 'small' },
+      
+      // 上肢（背面から見た左右は前面と逆）
+      left_shoulder_back: { label: '左肩関節（後面）', category: '上肢', x: 68, y: 22, size: 'large' },
+      right_shoulder_back: { label: '右肩関節（後面）', category: '上肢', x: 82, y: 22, size: 'large' },
+      left_elbow_back: { label: '左肘関節（後面）', category: '上肢', x: 64, y: 35, size: 'medium' },
+      right_elbow_back: { label: '右肘関節（後面）', category: '上肢', x: 86, y: 35, size: 'medium' },
+      left_wrist_back: { label: '左手首（後面）', category: '上肢', x: 62, y: 48, size: 'small' },
+      right_wrist_back: { label: '右手首（後面）', category: '上肢', x: 88, y: 48, size: 'small' },
+      
+      // 体幹（背面）
+      upper_spine: { label: '胸椎', category: '体幹', x: 75, y: 30, size: 'medium' },
+      lower_spine: { label: '腰椎', category: '体幹', x: 75, y: 45, size: 'medium' },
+      sacrum: { label: '仙骨', category: '体幹', x: 75, y: 55, size: 'medium' },
+      
+      // 下肢（背面から見た左右は前面と逆）
+      left_hip_back: { label: '左股関節（後面）', category: '下肢', x: 72, y: 58, size: 'large' },
+      right_hip_back: { label: '右股関節（後面）', category: '下肢', x: 78, y: 58, size: 'large' },
+      left_knee_back: { label: '左膝関節（後面）', category: '下肢', x: 72, y: 72, size: 'medium' },
+      right_knee_back: { label: '右膝関節（後面）', category: '下肢', x: 78, y: 72, size: 'medium' },
+      left_ankle_back: { label: '左足首（後面）', category: '下肢', x: 72, y: 85, size: 'small' },
+      right_ankle_back: { label: '右足首（後面）', category: '下肢', x: 78, y: 85, size: 'small' },
+    };
+
+    // 統合された関節エリア（後方互換性のため）
     this.jointAreas = {
-      // 上肢
-      shoulders: { label: '肩関節', category: '上肢', x: 50, y: 20, size: 'large' },
-      elbows: { label: '肘関節', category: '上肢', x: 50, y: 35, size: 'medium' },
-      wrists: { label: '手首', category: '上肢', x: 50, y: 45, size: 'small' },
-      fingers: { label: '指関節', category: '上肢', x: 50, y: 55, size: 'small' },
-      
-      // 体幹
-      neck: { label: '頸椎', category: '体幹', x: 50, y: 10, size: 'small' },
-      spine: { label: '脊椎', category: '体幹', x: 50, y: 30, size: 'large' },
-      
-      // 下肢
-      hips: { label: '股関節', category: '下肢', x: 50, y: 60, size: 'large' },
-      knees: { label: '膝関節', category: '下肢', x: 50, y: 75, size: 'medium' },
-      ankles: { label: '足首', category: '下肢', x: 50, y: 85, size: 'small' },
-      toes: { label: '足趾関節', category: '下肢', x: 50, y: 95, size: 'small' },
+      ...this.frontJointAreas,
+      ...this.backJointAreas,
     };
 
     // 症状の種類
@@ -245,9 +290,9 @@ class DetailedHealthService {
   getJointDisplaySize(joint, level) {
     const baseSize = this.jointAreas[joint]?.size || 'medium';
     const sizeMap = {
-      small: { base: 20, multiplier: 1.5 },
-      medium: { base: 30, multiplier: 2 },
-      large: { base: 40, multiplier: 2.5 }
+      small: { base: 12, multiplier: 1 },      // 小さい関節: 12-17px
+      medium: { base: 16, multiplier: 1.5 },   // 中程度の関節: 16-23.5px
+      large: { base: 20, multiplier: 2 }       // 大きい関節: 20-30px
     };
     
     const config = sizeMap[baseSize];

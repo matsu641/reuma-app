@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
@@ -18,8 +19,50 @@ import DetailedHealthService from '../services/DetailedHealthService';
 const { width, height } = Dimensions.get('window');
 
 const JointMapView = ({ jointSymptoms, onJointPress }) => {
-  const bodyWidth = width * 0.8;
-  const bodyHeight = height * 0.6;
+  const bodyWidth = width * 0.9;
+  const bodyHeight = bodyWidth * 1.2; // 人体図は縦長なので比率調整
+
+  // 前面・背面のラベル
+  const renderBodyLabel = (title, side) => (
+    <View style={styles.bodyLabelContainer}>
+      <Text style={styles.bodyLabel}>{title}</Text>
+    </View>
+  );
+
+  // 関節の丸を描画するヘルパー関数
+  const renderJointCircles = (jointAreas) => {
+    return Object.entries(jointAreas).map(([joint, config]) => {
+      const symptoms = jointSymptoms[joint] || {};
+      const maxSymptom = Math.max(symptoms.pain || 0, symptoms.swelling || 0, symptoms.stiffness || 0);
+      const jointSize = DetailedHealthService.getJointDisplaySize(joint, maxSymptom);
+      const jointColor = maxSymptom > 0 ? DetailedHealthService.getSymptomColor('pain', maxSymptom) : 'rgba(224, 224, 224, 0.8)';
+      
+      return (
+        <TouchableOpacity
+          key={joint}
+          style={[
+            styles.jointCircle,
+            {
+              left: (config.x / 100) * bodyWidth - jointSize / 2,
+              top: (config.y / 100) * bodyHeight - jointSize / 2,
+              width: jointSize,
+              height: jointSize,
+              borderRadius: jointSize / 2,
+              backgroundColor: jointColor,
+            }
+          ]}
+          onPress={() => onJointPress(joint, config.label)}
+          activeOpacity={0.7}
+        >
+          {maxSymptom > 0 && (
+            <Text style={[styles.jointSymptomText, { fontSize: jointSize * 0.3 }]}>
+              {maxSymptom}
+            </Text>
+          )}
+        </TouchableOpacity>
+      );
+    });
+  };
 
   return (
     <View style={styles.jointMapContainer}>
@@ -28,28 +71,27 @@ const JointMapView = ({ jointSymptoms, onJointPress }) => {
         関節をタップして症状を記録してください
       </Text>
       
-      <View style={styles.mapContainer}>
-        <Svg width={bodyWidth} height={bodyHeight} style={styles.bodySvg}>
-          {Object.entries(DetailedHealthService.jointAreas).map(([joint, config]) => {
-            const symptoms = jointSymptoms[joint] || {};
-            const maxSymptom = Math.max(symptoms.pain || 0, symptoms.swelling || 0, symptoms.stiffness || 0);
-            const jointSize = DetailedHealthService.getJointDisplaySize(joint, maxSymptom);
-            const jointColor = maxSymptom > 0 ? DetailedHealthService.getSymptomColor('pain', maxSymptom) : '#E0E0E0';
-            
-            return (
-              <Circle
-                key={joint}
-                cx={(config.x / 100) * bodyWidth}
-                cy={(config.y / 100) * bodyHeight}
-                r={jointSize / 2}
-                fill={jointColor}
-                stroke="#333"
-                strokeWidth={2}
-                onPress={() => onJointPress(joint, config.label)}
-              />
-            );
-          })}
-        </Svg>
+      {/* 前面と背面のラベル */}
+      <View style={styles.bodyLabelsRow}>
+        <Text style={styles.bodyViewLabel}>前面</Text>
+        <Text style={styles.bodyViewLabel}>背面</Text>
+      </View>
+      
+      <View style={[styles.mapContainer, { width: bodyWidth, height: bodyHeight }]}>
+        {/* 人体図の背景画像 */}
+        <Image
+          source={require('../../assets/human-body.png')}
+          style={[styles.humanBodyImage, { width: bodyWidth, height: bodyHeight }]}
+          resizeMode="contain"
+        />
+        
+        {/* 関節の丸をオーバーレイ */}
+        <View style={[styles.jointOverlay, { width: bodyWidth, height: bodyHeight }]}>
+          {/* 前面の関節 */}
+          {renderJointCircles(DetailedHealthService.frontJointAreas)}
+          {/* 背面の関節 */}
+          {renderJointCircles(DetailedHealthService.backJointAreas)}
+        </View>
       </View>
       
       {/* 凡例 */}
@@ -446,6 +488,18 @@ const styles = StyleSheet.create({
   mapContainer: {
     alignItems: 'center',
     marginBottom: spacing.lg,
+    position: 'relative',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   
   bodySvg: {
@@ -678,6 +732,70 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: '#fff',
     fontWeight: 'bold',
+  },
+
+  // 人体図関連のスタイル
+  humanBodyImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  
+  jointOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  
+  jointCircle: {
+    position: 'absolute',
+    borderWidth: 2,
+    borderColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  
+  jointSymptomText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  // 前面・背面ラベル用のスタイル
+  bodyLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  
+  bodyViewLabel: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    flex: 1,
+  },
+  
+  bodyLabelContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  
+  bodyLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+    color: colors.textSecondary,
   },
 });
 

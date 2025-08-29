@@ -124,7 +124,7 @@ const MedicationItem = ({ medication, onTaken }) => {
   );
 };
 
-const MedicationTracker = ({ onRecorded }) => {
+const MedicationTracker = ({ onRecorded, navigation }) => {
   const [medications, setMedications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -161,15 +161,30 @@ const MedicationTracker = ({ onRecorded }) => {
     return (
       <View style={styles.container}>
         <View style={commonStyles.card}>
-          <Text style={commonStyles.title}>服薬管理</Text>
+          <View style={styles.headerWithActions}>
+            <Text style={commonStyles.title}>服薬管理</Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.navigate('AddMedication')}
+            >
+              <Ionicons name="add-circle" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
           <View style={styles.emptyState}>
             <Ionicons name="medical" size={64} color={colors.gray} />
             <Text style={styles.emptyText}>
               薬剤が登録されていません
             </Text>
             <Text style={styles.emptySubtext}>
-              設定画面から薬剤を追加してください
+              薬剤を追加して服薬管理を始めましょう
             </Text>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => navigation.navigate('AddMedication')}
+            >
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.primaryButtonText}>薬剤を追加</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -179,10 +194,28 @@ const MedicationTracker = ({ onRecorded }) => {
   return (
     <View style={styles.container}>
       <View style={commonStyles.card}>
-        <Text style={commonStyles.title}>今日の服薬</Text>
-        <Text style={styles.dateText}>
-          {formatDateJapanese(new Date())}
-        </Text>
+        <View style={styles.headerWithActions}>
+          <View>
+            <Text style={commonStyles.title}>今日の服薬</Text>
+            <Text style={styles.dateText}>
+              {formatDateJapanese(new Date())}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('MedicationList')}
+            >
+              <Ionicons name="list" size={20} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('AddMedication')}
+            >
+              <Ionicons name="add-circle" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
         
         <FlatList
           data={medications}
@@ -200,7 +233,7 @@ const MedicationTracker = ({ onRecorded }) => {
   );
 };
 
-const QuickMedicationLogger = ({ onRecorded }) => {
+const QuickMedicationLogger = ({ onRecorded, navigation }) => {
   const [medications, setMedications] = useState([]);
   const [expandedMeds, setExpandedMeds] = useState({});
 
@@ -242,9 +275,50 @@ const QuickMedicationLogger = ({ onRecorded }) => {
     }
   };
 
+  if (medications.length === 0) {
+    return (
+      <View style={styles.quickLogContainer}>
+        <View style={styles.headerWithActions}>
+          <Text style={commonStyles.subtitle}>クイック記録</Text>
+          {navigation && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('AddMedication')}
+            >
+              <Ionicons name="add-circle" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.emptyQuickLog}>
+          <Text style={styles.emptyQuickLogText}>
+            登録された薬剤がありません
+          </Text>
+          {navigation && (
+            <TouchableOpacity
+              style={styles.smallButton}
+              onPress={() => navigation.navigate('AddMedication')}
+            >
+              <Text style={styles.smallButtonText}>薬剤を追加</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.quickLogContainer}>
-      <Text style={commonStyles.subtitle}>クイック記録</Text>
+      <View style={styles.headerWithActions}>
+        <Text style={commonStyles.subtitle}>クイック記録</Text>
+        {navigation && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('AddMedication')}
+          >
+            <Ionicons name="add-circle" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
       <View style={styles.quickButtons}>
         {medications.map((med) => (
           <TouchableOpacity
@@ -267,11 +341,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   
+  headerWithActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  
+  actionButton: {
+    padding: spacing.xs,
+    borderRadius: 6,
+    backgroundColor: colors.lightGray,
+  },
+  
+  addButton: {
+    padding: spacing.xs,
+  },
+  
   dateText: {
     fontSize: fontSize.md,
     color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
+    marginTop: spacing.xs,
   },
   
   medicationItem: {
@@ -356,10 +451,53 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+  },
+  
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    marginLeft: spacing.xs,
   },
   
   quickLogContainer: {
     marginTop: spacing.lg,
+  },
+  
+  emptyQuickLog: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+  },
+  
+  emptyQuickLogText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  
+  smallButton: {
+    backgroundColor: colors.lightGray,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  
+  smallButtonText: {
+    color: colors.primary,
+    fontSize: fontSize.sm,
+    fontWeight: '500',
   },
   
   quickButtons: {

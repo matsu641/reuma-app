@@ -287,6 +287,41 @@ class DatabaseService {
       throw error;
     }
   }
+
+  // 薬剤の有効/無効を切り替え
+  async updateMedicationActive(medicationId, active) {
+    await this.ensureInitialized();
+    
+    const query = `
+      UPDATE medications 
+      SET active = ? 
+      WHERE id = ?
+    `;
+    
+    try {
+      await this.db.runAsync(query, [active ? 1 : 0, medicationId]);
+    } catch (error) {
+      console.error('Error updating medication active status:', error);
+      throw error;
+    }
+  }
+
+  // 薬剤を削除
+  async deleteMedication(medicationId) {
+    await this.ensureInitialized();
+    
+    const query = `
+      DELETE FROM medications 
+      WHERE id = ?
+    `;
+    
+    try {
+      await this.db.runAsync(query, [medicationId]);
+    } catch (error) {
+      console.error('Error deleting medication:', error);
+      throw error;
+    }
+  }
 }
 
 export default new DatabaseService();

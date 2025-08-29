@@ -157,6 +157,13 @@ const AddMedicationScreen = ({ navigation }) => {
     if (!validateInput()) return;
 
     setIsLoading(true);
+    console.log('Saving medication:', {
+      name: medicationName.trim(),
+      dosage: dosage.trim(),
+      frequency,
+      times: selectedTimes
+    });
+    
     try {
       // データベースに薬剤を追加
       const medicationId = await DatabaseService.addMedication(
@@ -165,6 +172,8 @@ const AddMedicationScreen = ({ navigation }) => {
         frequency,
         selectedTimes
       );
+
+      console.log('Medication saved with ID:', medicationId);
 
       // 毎日服薬の場合は通知を設定
       if (frequency === 'daily' && selectedTimes.length > 0) {
@@ -186,7 +195,7 @@ const AddMedicationScreen = ({ navigation }) => {
       );
 
     } catch (error) {
-      Alert.alert('エラー', '薬剤の追加に失敗しました');
+      Alert.alert('エラー', '薬剤の追加に失敗しました: ' + error.message);
       console.error('Add medication error:', error);
     } finally {
       setIsLoading(false);
@@ -321,6 +330,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    paddingTop: 50, // ステータスバー + 追加の余白
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

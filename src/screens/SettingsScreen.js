@@ -238,7 +238,7 @@ const SettingsScreen = ({ navigation }) => {
             title="薬剤一覧"
             subtitle="登録済みの薬剤を管理"
             icon="list-outline"
-            onPress={() => Alert.alert('準備中', '薬剤一覧機能は今後追加予定です。')}
+            onPress={() => navigation.navigate('MedicationList')}
           />
 
           <SettingItem
@@ -331,6 +331,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    paddingTop: 50, // ステータスバー + 追加の余白
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

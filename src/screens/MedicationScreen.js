@@ -54,12 +54,14 @@ const MedicationScreen = ({ navigation }) => {
         <MedicationTracker
           key={`tracker-${refreshKey}`}
           onRecorded={handleMedicationRecorded}
+          navigation={navigation}
         />
         
         <View style={commonStyles.card}>
           <QuickMedicationLogger
             key={`logger-${refreshKey}`}
             onRecorded={handleMedicationRecorded}
+            navigation={navigation}
           />
         </View>
         
@@ -103,6 +105,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    paddingTop: 50, // ステータスバー + 追加の余白
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

@@ -402,6 +402,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    paddingTop: 50, // ステータスバー + 追加の余白
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,

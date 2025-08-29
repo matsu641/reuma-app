@@ -288,6 +288,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingTop: 50, // ステータスバー + 追加の余白
   },
   
   // Period Selector

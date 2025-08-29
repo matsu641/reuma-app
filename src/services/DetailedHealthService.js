@@ -37,28 +37,32 @@ class DetailedHealthService {
     // 背面（右側の人体図）の関節位置
     this.backJointAreas = {
       // 頭部・頸部（背面）
-      neck_back: { label: '頸椎（後面）', category: '体幹', x: 75, y: 12, size: 'small' },
+      neck_back: { label: '頸椎（後面）', category: '体幹', x: 77, y: 12, size: 'small' },
       
-      // 上肢（背面から見た左右は前面と逆）
-      left_shoulder_back: { label: '左肩関節（後面）', category: '上肢', x: 68, y: 22, size: 'large' },
-      right_shoulder_back: { label: '右肩関節（後面）', category: '上肢', x: 82, y: 22, size: 'large' },
-      left_elbow_back: { label: '左肘関節（後面）', category: '上肢', x: 64, y: 35, size: 'medium' },
-      right_elbow_back: { label: '右肘関節（後面）', category: '上肢', x: 86, y: 35, size: 'medium' },
-      left_wrist_back: { label: '左手首（後面）', category: '上肢', x: 62, y: 48, size: 'small' },
-      right_wrist_back: { label: '右手首（後面）', category: '上肢', x: 88, y: 48, size: 'small' },
-      
+      // 上肢（背面から見た左右は前面と逆になる + 50%オフセット）
+      left_shoulder_back: { label: '左肩関節（後面）', category: '上肢', x: 68, y: 25, size: 'large' },
+      right_shoulder_back: { label: '右肩関節（後面）', category: '上肢', x: 87, y: 25, size: 'large' },
+      left_elbow_back: { label: '左肘関節（後面）', category: '上肢', x: 65, y: 38, size: 'medium' },
+      right_elbow_back: { label: '右肘関節（後面）', category: '上肢', x: 89, y: 38, size: 'medium' },
+      left_wrist_back: { label: '左手首（後面）', category: '上肢', x: 57, y: 48, size: 'small' },
+      right_wrist_back: { label: '右手首（後面）', category: '上肢', x: 95, y: 48, size: 'small' },
+      left_fingers_back: { label: '左指関節（後面）', category: '上肢', x: 55, y: 53, size: 'small' },
+      right_fingers_back: { label: '右指関節（後面）', category: '上肢', x: 99, y: 53, size: 'small' },
+
       // 体幹（背面）
-      upper_spine: { label: '胸椎', category: '体幹', x: 75, y: 30, size: 'medium' },
-      lower_spine: { label: '腰椎', category: '体幹', x: 75, y: 45, size: 'medium' },
-      sacrum: { label: '仙骨', category: '体幹', x: 75, y: 55, size: 'medium' },
+      upper_spine: { label: '胸椎', category: '体幹', x: 77, y: 32, size: 'medium' },
+      lower_spine: { label: '腰椎', category: '体幹', x: 77, y: 43, size: 'medium' },
+      sacrum: { label: '仙骨', category: '体幹', x: 77, y: 55, size: 'medium' },
       
-      // 下肢（背面から見た左右は前面と逆）
-      left_hip_back: { label: '左股関節（後面）', category: '下肢', x: 72, y: 58, size: 'large' },
-      right_hip_back: { label: '右股関節（後面）', category: '下肢', x: 78, y: 58, size: 'large' },
-      left_knee_back: { label: '左膝関節（後面）', category: '下肢', x: 72, y: 72, size: 'medium' },
-      right_knee_back: { label: '右膝関節（後面）', category: '下肢', x: 78, y: 72, size: 'medium' },
-      left_ankle_back: { label: '左足首（後面）', category: '下肢', x: 72, y: 85, size: 'small' },
-      right_ankle_back: { label: '右足首（後面）', category: '下肢', x: 78, y: 85, size: 'small' },
+      // 下肢（背面から見た左右は前面と逆になる + 50%オフセット）
+      left_hip_back: { label: '左股関節（後面）', category: '下肢', x: 71, y: 58, size: 'large' },
+      right_hip_back: { label: '右股関節（後面）', category: '下肢', x: 83, y: 58, size: 'large' },
+      left_knee_back: { label: '左膝関節（後面）', category: '下肢', x: 71, y: 68, size: 'medium' },
+      right_knee_back: { label: '右膝関節（後面）', category: '下肢', x: 83, y: 68, size: 'medium' },
+      left_ankle_back: { label: '左足首（後面）', category: '下肢', x: 70, y: 82, size: 'small' },
+      right_ankle_back: { label: '右足首（後面）', category: '下肢', x: 84, y: 82, size: 'small' },
+      left_toes_back: { label: '左足趾関節（後面）', category: '下肢', x: 68, y: 89, size: 'small' },
+      right_toes_back: { label: '右足趾関節（後面）', category: '下肢', x: 85, y: 89, size: 'small' },
     };
 
     // 統合された関節エリア（後方互換性のため）

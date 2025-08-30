@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, commonStyles } from '../utils/styles';
 import { formatDateJapanese, formatDate } from '../utils/dateUtils';
 import DatabaseService from '../services/DatabaseService';
+import WeatherService from '../services/WeatherService';
 import SymptomRecorder from '../components/SymptomRecorder';
 import WeatherWidget from '../components/WeatherWidget';
 
@@ -27,7 +28,7 @@ const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (
   </TouchableOpacity>
 );
 
-const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
+const TodayStatusCard = ({ painScore, pressure, pressureChange }) => {
   const getPainLevelText = (score) => {
     if (score === null || score === undefined) return '未記録';
     if (score <= 3) return `軽度 (${score})`;
@@ -42,8 +43,49 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
     return colors.danger;
   };
 
-  const adherenceRate = medicationCount > 0 ? 
-    Math.round((medicationTaken / medicationCount) * 100) : 0;
+  const getPressureStatus = (pressure, change) => {
+    if (!pressure) return { text: '取得中...', color: colors.gray };
+    
+    // 気圧レベルの判定（hPa基準）
+    let pressureLevel = '';
+    let pressureColor = colors.success;
+    
+    if (pressure < 1005) {
+      pressureLevel = '極度に低い';
+      pressureColor = colors.danger;
+    } else if (pressure < 1013) {
+      pressureLevel = '低い';
+      pressureColor = colors.warning;
+    } else if (pressure > 1023) {
+      pressureLevel = '高い';
+      pressureColor = colors.info;
+    } else {
+      pressureLevel = '普通';
+      pressureColor = colors.success;
+    }
+    
+    // 気圧変化の表示（24時間以内の変化）
+    let changeText = '';
+    if (change !== null && change !== undefined) {
+      if (change < -3) {
+        changeText = ' ↓急降下';
+        pressureColor = colors.danger; // 急降下時は危険色に
+      } else if (change < -1) {
+        changeText = ' ↓下降';
+      } else if (change > 3) {
+        changeText = ' ↑急上昇';
+      } else if (change > 1) {
+        changeText = ' ↑上昇';
+      }
+    }
+    
+    return { 
+      text: `${pressureLevel}${changeText}`, 
+      color: pressureColor 
+    };
+  };
+
+  const pressureStatus = getPressureStatus(pressure, pressureChange);
 
   return (
     <View style={styles.statusCard}>
@@ -65,17 +107,17 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
         <View style={styles.statusItem}>
           <View style={styles.statusIconContainer}>
             <Ionicons 
-              name="medical" 
+              name="speedometer" 
               size={20} 
-              color={adherenceRate >= 85 ? colors.success : colors.warning} 
+              color={pressureStatus.color}
             />
           </View>
-          <Text style={styles.statusLabel}>服薬遵守率</Text>
+          <Text style={styles.statusLabel}>気圧</Text>
           <Text style={[
             styles.statusValue,
-            { color: adherenceRate >= 85 ? colors.success : colors.warning }
+            { color: pressureStatus.color }
           ]}>
-            {adherenceRate}%
+            {pressureStatus.text}
           </Text>
         </View>
       </View>
@@ -86,8 +128,8 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
 const HomeScreen = ({ navigation }) => {
   const [todayData, setTodayData] = useState({
     painScore: null,
-    medicationCount: 0,
-    medicationTaken: 0,
+    pressure: null,
+    pressureChange: null,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSymptomRecorder, setShowSymptomRecorder] = useState(false);
@@ -104,25 +146,34 @@ const HomeScreen = ({ navigation }) => {
       const symptoms = await DatabaseService.getSymptomLogs(today, today);
       const todaySymptom = symptoms.length > 0 ? symptoms[0] : null;
       
-      // 今日の服薬状況を取得
-      const medications = await DatabaseService.getMedications();
-      const medicationLogs = await DatabaseService.getMedicationLogs(today, today);
+      // 気圧情報を取得
+      let pressure = null;
+      let pressureChange = null;
       
-      let totalScheduled = 0;
-      let totalTaken = 0;
-      
-      medications.forEach(med => {
-        totalScheduled += med.times.length;
-        const takenLogs = medicationLogs.filter(log => 
-          log.medication_name === med.name && log.taken === 1
-        );
-        totalTaken += takenLogs.length;
-      });
+      try {
+        const weatherData = await WeatherService.getCurrentWeather();
+        pressure = weatherData.pressure;
+        
+        // 気圧の変化を計算（過去24時間との比較）
+        const pressureHistory = await WeatherService.getPressureHistory();
+        if (pressureHistory && pressureHistory.length > 1) {
+          const previousPressure = pressureHistory[pressureHistory.length - 2]?.pressure;
+          if (previousPressure) {
+            pressureChange = pressure - previousPressure;
+          }
+        }
+        
+        // 気圧履歴に保存
+        await WeatherService.savePressureHistory(pressure);
+      } catch (weatherError) {
+        console.error('Weather data error:', weatherError);
+        // エラー時もデフォルト値を設定
+      }
       
       setTodayData({
         painScore: todaySymptom?.pain_score || null,
-        medicationCount: totalScheduled,
-        medicationTaken: totalTaken,
+        pressure,
+        pressureChange,
       });
     } catch (error) {
       console.error('Error loading today data:', error);
@@ -184,8 +235,8 @@ const HomeScreen = ({ navigation }) => {
         
         <TodayStatusCard
           painScore={todayData.painScore}
-          medicationCount={todayData.medicationCount}
-          medicationTaken={todayData.medicationTaken}
+          pressure={todayData.pressure}
+          pressureChange={todayData.pressureChange}
         />
         
         <View style={styles.quickActionsContainer}>

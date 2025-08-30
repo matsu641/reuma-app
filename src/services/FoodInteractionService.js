@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DatabaseService from './DatabaseService';
+import FirestoreService from './FirestoreService';
+import { auth } from '../../firebaseConfig';
 
 class FoodInteractionService {
   constructor() {
@@ -85,10 +87,12 @@ class FoodInteractionService {
   // 現在の服薬情報と食事記録から相互作用をチェック
   async checkFoodInteractions(foodItems) {
     try {
-      const medications = await DatabaseService.getActiveMedications();
+      // アクティブな薬剤を取得（DatabaseServiceが自動的にFirestore/SQLiteを判定）
+      const medications = await DatabaseService.getMedications();
+      const activeMedications = medications.filter(med => med.active);
       const interactions = [];
 
-      for (const medication of medications) {
+      for (const medication of activeMedications) {
         const drugInteractions = this.getMedicationInteractions(medication.name);
         
         if (drugInteractions) {
@@ -105,6 +109,7 @@ class FoodInteractionService {
         }
       }
 
+      console.log(`Checked interactions for ${foodItems.length} foods against ${activeMedications.length} medications: ${interactions.length} found`);
       return interactions;
     } catch (error) {
       console.error('Food interaction check error:', error);
@@ -166,24 +171,41 @@ class FoodInteractionService {
   async saveFoodLog(foodItems, mealTime = 'other') {
     try {
       const timestamp = new Date().toISOString();
+      const interactions = await this.checkFoodInteractions(foodItems);
+      
       const foodLog = {
         id: Date.now(),
         foods: foodItems,
         mealTime, // breakfast, lunch, dinner, snack, other
         timestamp,
-        interactions: await this.checkFoodInteractions(foodItems)
+        interactions
       };
 
-      const existingLogs = await this.getFoodLogs();
-      existingLogs.push(foodLog);
+      // Firestoreモードの確認
+      if (DatabaseService.shouldUseFirestore()) {
+        // Firestoreに保存
+        const docId = await FirestoreService.addFoodLog(
+          foodItems,
+          mealTime,
+          interactions
+        );
+        foodLog.id = docId;
+        console.log('Food log saved to Firestore:', docId);
+      } else {
+        // ローカルストレージに保存（ログアウト時用）
+        const existingLogs = await this.getFoodLogsFromLocal();
+        existingLogs.push(foodLog);
 
-      // 過去30日分のみ保持
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const filteredLogs = existingLogs.filter(
-        log => new Date(log.timestamp) > thirtyDaysAgo
-      );
+        // 過去30日分のみ保持
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const filteredLogs = existingLogs.filter(
+          log => new Date(log.timestamp) > thirtyDaysAgo
+        );
 
-      await AsyncStorage.setItem('food_logs', JSON.stringify(filteredLogs));
+        await AsyncStorage.setItem('food_logs', JSON.stringify(filteredLogs));
+        console.log('Food log saved to local storage');
+      }
+
       return foodLog;
     } catch (error) {
       console.error('Save food log error:', error);
@@ -193,6 +215,25 @@ class FoodInteractionService {
 
   // 食事記録を取得
   async getFoodLogs(days = 7) {
+    try {
+      // Firestoreモードの確認
+      if (DatabaseService.shouldUseFirestore()) {
+        // Firestoreから取得
+        const logs = await FirestoreService.getFoodLogs(days);
+        console.log(`Retrieved ${logs.length} food logs from Firestore`);
+        return logs;
+      } else {
+        // ローカルストレージから取得
+        return await this.getFoodLogsFromLocal(days);
+      }
+    } catch (error) {
+      console.error('Get food logs error:', error);
+      return [];
+    }
+  }
+
+  // ローカルストレージから食事記録を取得
+  async getFoodLogsFromLocal(days = 7) {
     try {
       const logs = await AsyncStorage.getItem('food_logs');
       const allLogs = logs ? JSON.parse(logs) : [];
@@ -204,7 +245,7 @@ class FoodInteractionService {
       
       return allLogs;
     } catch (error) {
-      console.error('Get food logs error:', error);
+      console.error('Get local food logs error:', error);
       return [];
     }
   }
@@ -212,11 +253,20 @@ class FoodInteractionService {
   // 今日の食事記録を取得
   async getTodayFoodLogs() {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const logs = await this.getFoodLogs(1);
-      return logs.filter(log => new Date(log.timestamp) >= today);
+      // Firestoreモードの確認
+      if (DatabaseService.shouldUseFirestore()) {
+        // Firestoreから今日の記録を取得
+        const logs = await FirestoreService.getTodayFoodLogs();
+        console.log(`Retrieved ${logs.length} today's food logs from Firestore`);
+        return logs;
+      } else {
+        // ローカルストレージから今日の記録を取得
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const logs = await this.getFoodLogsFromLocal(1);
+        return logs.filter(log => new Date(log.timestamp) >= today);
+      }
     } catch (error) {
       console.error('Get today food logs error:', error);
       return [];
@@ -226,10 +276,12 @@ class FoodInteractionService {
   // 薬剤の推奨食品を取得
   async getRecommendedFoods() {
     try {
-      const medications = await DatabaseService.getActiveMedications();
+      // アクティブな薬剤を取得（DatabaseServiceが自動的にFirestore/SQLiteを判定）
+      const medications = await DatabaseService.getMedications();
+      const activeMedications = medications.filter(med => med.active);
       const recommendations = [];
 
-      for (const medication of medications) {
+      for (const medication of activeMedications) {
         const interactions = this.getMedicationInteractions(medication.name);
         if (interactions && interactions.recommend) {
           recommendations.push({
@@ -239,6 +291,7 @@ class FoodInteractionService {
         }
       }
 
+      console.log(`Retrieved recommendations for ${activeMedications.length} medications`);
       return recommendations;
     } catch (error) {
       console.error('Get recommended foods error:', error);
@@ -276,6 +329,54 @@ class FoodInteractionService {
       low: '軽微'
     };
     return texts[severity] || '確認';
+  }
+
+  // === データマイグレーション ===
+  // AsyncStorageからFirestoreに食事記録を移行
+  async migrateFoodLogsToFirestore() {
+    try {
+      // ログインしている場合のみ実行
+      if (!DatabaseService.shouldUseFirestore()) {
+        console.log('Firestore mode not enabled, skipping food logs migration');
+        return;
+      }
+
+      // ローカルの食事記録を取得
+      const localLogs = await this.getFoodLogsFromLocal();
+      if (localLogs.length === 0) {
+        console.log('No local food logs to migrate');
+        return;
+      }
+
+      console.log(`Starting migration of ${localLogs.length} food logs to Firestore`);
+
+      let migratedCount = 0;
+      for (const log of localLogs) {
+        try {
+          await FirestoreService.addFoodLog(
+            log.foods,
+            log.mealTime,
+            log.interactions
+          );
+          migratedCount++;
+        } catch (error) {
+          console.warn('Failed to migrate food log:', log.id, error);
+        }
+      }
+
+      if (migratedCount > 0) {
+        console.log(`Successfully migrated ${migratedCount} food logs to Firestore`);
+        // 移行成功後、ローカルデータをクリア（バックアップとして一時的に保持）
+        await AsyncStorage.setItem('food_logs_migrated', JSON.stringify(localLogs));
+        await AsyncStorage.removeItem('food_logs');
+      }
+
+      return migratedCount;
+    } catch (error) {
+      console.error('Food logs migration error:', error);
+      // マイグレーションエラーは致命的ではない
+      return 0;
+    }
   }
 }
 

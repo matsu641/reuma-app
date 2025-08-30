@@ -342,6 +342,10 @@ class DatabaseService {
 
   // 現在服用中の薬剤を取得（食品相互作用チェック用）
   async getActiveMedications() {
+    if (this.shouldUseFirestore()) {
+      return await FirestoreService.getActiveMedications();
+    }
+    
     await this.ensureInitialized();
     
     const query = `

@@ -28,6 +28,7 @@ import DataMigrationScreen from './src/screens/DataMigrationScreen';
 // Services
 import DatabaseService from './src/services/DatabaseService';
 import FirestoreService from './src/services/FirestoreService';
+import FoodInteractionService from './src/services/FoodInteractionService';
 import NotificationService from './src/services/NotificationService';
 
 const Stack = createStackNavigator();
@@ -50,6 +51,10 @@ export default function App() {
           await DatabaseService.init(); // ユーザー固有のデータベースで再初期化
           DatabaseService.setFirestoreMode(true);
           await FirestoreService.createUserProfile();
+          
+          // 食事記録のマイグレーションを実行
+          await FoodInteractionService.migrateFoodLogsToFirestore();
+          
           console.log('✅ Firestore mode enabled for user:', user.email, 'UID:', user.uid);
         } catch (error) {
           console.error('❌ User profile creation error:', error);

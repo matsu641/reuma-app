@@ -225,6 +225,18 @@ class FirestoreService {
     }
   }
 
+  async getActiveMedications() {
+    try {
+      const medications = await this.getMedications();
+      const activeMedications = medications.filter(med => med.active);
+      console.log(`Retrieved ${activeMedications.length} active medications`);
+      return activeMedications;
+    } catch (error) {
+      console.error('Error getting active medications:', error);
+      throw error;
+    }
+  }
+
   async updateMedicationActive(medicationId, active) {
     try {
       const userId = this.getCurrentUserId();
@@ -431,7 +443,7 @@ class FirestoreService {
   async migrateUserData() {
     try {
       const userId = this.getCurrentUserId();
-      const collections = ['symptomLogs', 'medicationLogs', 'medications', 'labValues'];
+      const collections = ['symptomLogs', 'medicationLogs', 'medications', 'labValues', 'foodLogs'];
       
       for (const collectionName of collections) {
         const collectionRef = this.getUserCollection(collectionName);
@@ -457,6 +469,124 @@ class FirestoreService {
     } catch (error) {
       console.error('Error during data migration:', error);
       // マイグレーションエラーは致命的ではないので、ログのみ出力
+    }
+  }
+
+  // === 食事記録 ===
+  async addFoodLog(foods, mealTime, interactions = []) {
+    try {
+      const userId = this.getCurrentUserId();
+      const foodLogsRef = this.getUserCollection('foodLogs');
+      const docRef = await addDoc(foodLogsRef, {
+        foods: foods,
+        mealTime: mealTime,
+        interactions: interactions,
+        timestamp: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: userId // ユーザーIDも明示的に保存
+      });
+      
+      console.log(`Food log added with ID: ${docRef.id} for user: ${userId}`);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error adding food log:', error);
+      throw error;
+    }
+  }
+
+  async getFoodLogs(days = 7) {
+    try {
+      const userId = this.getCurrentUserId();
+      const foodLogsRef = this.getUserCollection('foodLogs');
+      const querySnapshot = await getDocs(foodLogsRef);
+      const logs = [];
+      
+      // 指定日数分の日付を計算
+      const targetDate = days > 0 ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : new Date(0);
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // ユーザーIDの整合性チェック（追加のセキュリティ層）
+        if (data.userId && data.userId !== userId) {
+          console.warn(`Data ownership mismatch detected! Document user: ${data.userId}, Current user: ${userId}`);
+          return; // このドキュメントをスキップ
+        }
+        
+        const logDate = data.timestamp?.toDate() || new Date(data.timestamp);
+        
+        // 指定期間内のデータのみ取得
+        if (logDate > targetDate) {
+          logs.push({
+            id: doc.id,
+            ...data,
+            timestamp: logDate.toISOString()
+          });
+        }
+      });
+      
+      // 新しい順にソート
+      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      console.log(`Retrieved ${logs.length} food logs for user: ${userId} (${days} days)`);
+      return logs;
+    } catch (error) {
+      console.error('Error getting food logs:', error);
+      throw error;
+    }
+  }
+
+  async getTodayFoodLogs() {
+    try {
+      const userId = this.getCurrentUserId();
+      const foodLogsRef = this.getUserCollection('foodLogs');
+      const querySnapshot = await getDocs(foodLogsRef);
+      const logs = [];
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // ユーザーIDの整合性チェック（追加のセキュリティ層）
+        if (data.userId && data.userId !== userId) {
+          console.warn(`Data ownership mismatch detected! Document user: ${data.userId}, Current user: ${userId}`);
+          return; // このドキュメントをスキップ
+        }
+        
+        const logDate = data.timestamp?.toDate() || new Date(data.timestamp);
+        
+        // 今日のデータのみ取得
+        if (logDate >= today) {
+          logs.push({
+            id: doc.id,
+            ...data,
+            timestamp: logDate.toISOString()
+          });
+        }
+      });
+      
+      // 新しい順にソート
+      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      console.log(`Retrieved ${logs.length} today's food logs for user: ${userId}`);
+      return logs;
+    } catch (error) {
+      console.error('Error getting today food logs:', error);
+      throw error;
+    }
+  }
+
+  async deleteFoodLog(logId) {
+    try {
+      const userId = this.getCurrentUserId();
+      const foodLogRef = doc(this.db, 'users', userId, 'foodLogs', logId);
+      
+      await deleteDoc(foodLogRef);
+      console.log(`Food log deleted: ${logId} for user: ${userId}`);
+    } catch (error) {
+      console.error('Error deleting food log:', error);
+      throw error;
     }
   }
 }

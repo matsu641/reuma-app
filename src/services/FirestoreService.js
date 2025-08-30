@@ -25,22 +25,25 @@ class FirestoreService {
   // ユーザーIDを取得
   getCurrentUserId() {
     const user = this.auth.currentUser;
-    if (!user) {
+    if (!user || !user.uid) {
       console.error('User not logged in - cannot access Firestore');
       throw new Error('ユーザーがログインしていません');
     }
+    console.log('Current user ID:', user.uid);
     return user.uid;
   }
 
   // ユーザーのサブコレクションへの参照を取得
   getUserCollection(collectionName) {
     const userId = this.getCurrentUserId();
+    console.log(`Accessing collection '${collectionName}' for user: ${userId}`);
     return collection(this.db, 'users', userId, collectionName);
   }
 
   // === 症状記録 ===
   async addSymptomLog(date, painScore, morningStiffnessDuration, notes = '') {
     try {
+      const userId = this.getCurrentUserId();
       const symptomsRef = this.getUserCollection('symptomLogs');
       const docRef = await addDoc(symptomsRef, {
         date: date,
@@ -48,10 +51,11 @@ class FirestoreService {
         morningStiffnessDuration: morningStiffnessDuration || 0,
         notes: notes,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        userId: userId // ユーザーIDも明示的に保存
       });
       
-      console.log('Symptom log added with ID:', docRef.id);
+      console.log(`Symptom log added with ID: ${docRef.id} for user: ${userId}`);
       return docRef.id;
     } catch (error) {
       console.error('Error adding symptom log:', error);
@@ -61,6 +65,7 @@ class FirestoreService {
 
   async getSymptomLogs(startDate, endDate) {
     try {
+      const userId = this.getCurrentUserId();
       const symptomsRef = this.getUserCollection('symptomLogs');
       // シンプルなクエリ（インデックス不要）
       const querySnapshot = await getDocs(symptomsRef);
@@ -68,6 +73,12 @@ class FirestoreService {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        // ユーザーIDの整合性チェック（追加のセキュリティ層）
+        if (data.userId && data.userId !== userId) {
+          console.warn(`Data ownership mismatch detected! Document user: ${data.userId}, Current user: ${userId}`);
+          return; // このドキュメントをスキップ
+        }
+        
         // 日付範囲でフィルタリング（クライアントサイド）
         if (data.date >= startDate && data.date <= endDate) {
           symptoms.push({
@@ -83,6 +94,7 @@ class FirestoreService {
       // JavaScript側でソート
       symptoms.sort((a, b) => new Date(b.date) - new Date(a.date));
       
+      console.log(`Retrieved ${symptoms.length} symptom logs for user: ${userId}`);
       return symptoms;
     } catch (error) {
       console.error('Error getting symptom logs:', error);
@@ -93,6 +105,7 @@ class FirestoreService {
   // === 服薬記録 ===
   async addMedicationLog(date, time, medicationName, dosage, taken, scheduledTime) {
     try {
+      const userId = this.getCurrentUserId();
       const medicationLogsRef = this.getUserCollection('medicationLogs');
       const docRef = await addDoc(medicationLogsRef, {
         date: date,
@@ -102,10 +115,11 @@ class FirestoreService {
         taken: taken ? 1 : 0,
         scheduledTime: scheduledTime || time,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        userId: userId // ユーザーIDも明示的に保存
       });
       
-      console.log('Medication log added with ID:', docRef.id);
+      console.log(`Medication log added with ID: ${docRef.id} for user: ${userId}`);
       return docRef.id;
     } catch (error) {
       console.error('Error adding medication log:', error);
@@ -115,6 +129,7 @@ class FirestoreService {
 
   async getMedicationLogs(startDate, endDate) {
     try {
+      const userId = this.getCurrentUserId();
       const medicationLogsRef = this.getUserCollection('medicationLogs');
       // シンプルなクエリ（インデックス不要）
       const querySnapshot = await getDocs(medicationLogsRef);
@@ -122,6 +137,12 @@ class FirestoreService {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        // ユーザーIDの整合性チェック（追加のセキュリティ層）
+        if (data.userId && data.userId !== userId) {
+          console.warn(`Data ownership mismatch detected! Document user: ${data.userId}, Current user: ${userId}`);
+          return; // このドキュメントをスキップ
+        }
+        
         // 日付範囲でフィルタリング（クライアントサイド）
         if (data.date >= startDate && data.date <= endDate) {
           logs.push({
@@ -141,6 +162,7 @@ class FirestoreService {
         return dateB - dateA;
       });
       
+      console.log(`Retrieved ${logs.length} medication logs for user: ${userId}`);
       return logs;
     } catch (error) {
       console.error('Error getting medication logs:', error);
@@ -151,6 +173,7 @@ class FirestoreService {
   // === 薬剤管理 ===
   async addMedication(name, dosage, frequency, times) {
     try {
+      const userId = this.getCurrentUserId();
       const medicationsRef = this.getUserCollection('medications');
       const docRef = await addDoc(medicationsRef, {
         name: name,
@@ -159,10 +182,11 @@ class FirestoreService {
         times: times,
         active: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        userId: userId // ユーザーIDも明示的に保存
       });
       
-      console.log('Medication added with ID:', docRef.id);
+      console.log(`Medication added with ID: ${docRef.id} for user: ${userId}`);
       return docRef.id;
     } catch (error) {
       console.error('Error adding medication:', error);
@@ -172,6 +196,7 @@ class FirestoreService {
 
   async getMedications() {
     try {
+      const userId = this.getCurrentUserId();
       const medicationsRef = this.getUserCollection('medications');
       const q = query(medicationsRef, orderBy('createdAt', 'desc'));
       
@@ -179,12 +204,20 @@ class FirestoreService {
       const medications = [];
       
       querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // ユーザーIDの整合性チェック（追加のセキュリティ層）
+        if (data.userId && data.userId !== userId) {
+          console.warn(`Data ownership mismatch detected! Document user: ${data.userId}, Current user: ${userId}`);
+          return; // このドキュメントをスキップ
+        }
+        
         medications.push({
           id: doc.id,
-          ...doc.data()
+          ...data
         });
       });
       
+      console.log(`Retrieved ${medications.length} medications for user: ${userId}`);
       return medications;
     } catch (error) {
       console.error('Error getting medications:', error);
@@ -225,6 +258,7 @@ class FirestoreService {
   // === 検査値 ===
   async addLabValue(date, crpValue, esrValue, mmp3Value, notes = '') {
     try {
+      const userId = this.getCurrentUserId();
       const labValuesRef = this.getUserCollection('labValues');
       const docRef = await addDoc(labValuesRef, {
         date: date,
@@ -233,10 +267,11 @@ class FirestoreService {
         mmp3Value: mmp3Value || null,
         notes: notes,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        userId: userId // ユーザーIDも明示的に保存
       });
       
-      console.log('Lab value added with ID:', docRef.id);
+      console.log(`Lab value added with ID: ${docRef.id} for user: ${userId}`);
       return docRef.id;
     } catch (error) {
       console.error('Error adding lab value:', error);
@@ -246,6 +281,7 @@ class FirestoreService {
 
   async getLabValues(startDate, endDate) {
     try {
+      const userId = this.getCurrentUserId();
       const labValuesRef = this.getUserCollection('labValues');
       // シンプルなクエリ（インデックス不要）
       const querySnapshot = await getDocs(labValuesRef);
@@ -253,6 +289,12 @@ class FirestoreService {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        // ユーザーIDの整合性チェック（追加のセキュリティ層）
+        if (data.userId && data.userId !== userId) {
+          console.warn(`Data ownership mismatch detected! Document user: ${data.userId}, Current user: ${userId}`);
+          return; // このドキュメントをスキップ
+        }
+        
         // 日付範囲でフィルタリング（クライアントサイド）
         if (data.date >= startDate && data.date <= endDate) {
           labValues.push({
@@ -269,6 +311,7 @@ class FirestoreService {
       // JavaScript側でソート
       labValues.sort((a, b) => new Date(b.date) - new Date(a.date));
       
+      console.log(`Retrieved ${labValues.length} lab values for user: ${userId}`);
       return labValues;
     } catch (error) {
       console.error('Error getting lab values:', error);
@@ -375,9 +418,45 @@ class FirestoreService {
         });
         console.log('User profile created');
       }
+      
+      // 既存データにユーザーIDを追加するマイグレーション実行
+      await this.migrateUserData();
     } catch (error) {
       console.error('Error creating user profile:', error);
       throw error;
+    }
+  }
+
+  // === データマイグレーション ===
+  async migrateUserData() {
+    try {
+      const userId = this.getCurrentUserId();
+      const collections = ['symptomLogs', 'medicationLogs', 'medications', 'labValues'];
+      
+      for (const collectionName of collections) {
+        const collectionRef = this.getUserCollection(collectionName);
+        const querySnapshot = await getDocs(collectionRef);
+        const batch = writeBatch(this.db);
+        let updateCount = 0;
+        
+        querySnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          // ユーザーIDがない場合のみ追加
+          if (!data.userId) {
+            const docRef = doc(this.db, 'users', userId, collectionName, docSnapshot.id);
+            batch.update(docRef, { userId: userId });
+            updateCount++;
+          }
+        });
+        
+        if (updateCount > 0) {
+          await batch.commit();
+          console.log(`Migration: Added userId to ${updateCount} documents in ${collectionName}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error during data migration:', error);
+      // マイグレーションエラーは致命的ではないので、ログのみ出力
     }
   }
 }

@@ -41,15 +41,16 @@ export default function App() {
     
     // 認証状態の監視
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('認証状態変更:', user ? user.email : 'ログアウト');
-      setUser(user);
+      console.log('認証状態変更:', user ? `${user.email} (${user.uid})` : 'ログアウト');
       
-      // ログイン時にFirestoreモードに切り替え
       if (user) {
+        // ログイン時にユーザー固有のデータベースに切り替え
         try {
+          await DatabaseService.cleanup(); // 現在のデータベースをクリーンアップ
+          await DatabaseService.init(); // ユーザー固有のデータベースで再初期化
           DatabaseService.setFirestoreMode(true);
           await FirestoreService.createUserProfile();
-          console.log('✅ Firestore mode enabled for user:', user.email);
+          console.log('✅ Firestore mode enabled for user:', user.email, 'UID:', user.uid);
         } catch (error) {
           console.error('❌ User profile creation error:', error);
           // Firestoreでエラーが発生した場合はSQLiteモードにフォールバック
@@ -57,10 +58,12 @@ export default function App() {
           console.log('🔄 Fallback to SQLite mode due to Firestore error');
         }
       } else {
-        DatabaseService.setFirestoreMode(false);
+        // ログアウト時のクリーンアップ
+        await DatabaseService.cleanup();
         console.log('📱 SQLite mode enabled (user logged out)');
       }
       
+      setUser(user);
       setIsLoading(false);
     });
 

@@ -18,7 +18,16 @@ class DatabaseService {
 
   // ユーザーがログインしているかチェック
   isUserLoggedIn() {
-    return auth.currentUser !== null;
+    return auth.currentUser !== null && auth.currentUser.uid;
+  }
+
+  // 現在のユーザーIDを取得
+  getCurrentUserId() {
+    const user = auth.currentUser;
+    if (!user || !user.uid) {
+      throw new Error('ユーザーがログインしていません');
+    }
+    return user.uid;
   }
 
   // データベースモードの自動判定
@@ -37,7 +46,15 @@ class DatabaseService {
 
   async _performInit() {
     try {
-      this.db = await SQLite.openDatabaseAsync('rheuma_app.db');
+      // ユーザー固有のデータベース名を生成
+      let dbName = 'rheuma_app.db';
+      if (this.isUserLoggedIn()) {
+        const userId = this.getCurrentUserId();
+        dbName = `rheuma_app_${userId}.db`;
+        console.log(`Using user-specific database: ${dbName}`);
+      }
+      
+      this.db = await SQLite.openDatabaseAsync(dbName);
       await this.createTables();
       this.isInitialized = true;
       console.log('Database initialized successfully');
@@ -375,6 +392,28 @@ class DatabaseService {
     } catch (error) {
       console.error('Error deleting medication:', error);
       throw error;
+    }
+  }
+
+  // ログアウト時のクリーンアップ
+  async cleanup() {
+    console.log('DatabaseService cleanup called');
+    this.useFirestore = false;
+    
+    // ユーザー固有のデータベースから共通データベースに戻す
+    if (this.isInitialized) {
+      try {
+        await this.db.closeAsync();
+        this.isInitialized = false;
+        this.db = null;
+        this.initPromise = null;
+        
+        // 共通データベースで再初期化
+        await this.init();
+        console.log('Switched to common SQLite database');
+      } catch (error) {
+        console.error('Error during database cleanup:', error);
+      }
     }
   }
 }

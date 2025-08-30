@@ -222,8 +222,6 @@ const DetailedSymptomScreen = ({ navigation }) => {
   const [jointSymptoms, setJointSymptoms] = useState({});
   const [fatigue, setFatigue] = useState({});
   const [sleep, setSleep] = useState({});
-  const [mood, setMood] = useState(3);
-  const [stress, setStress] = useState(3);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedJoint, setSelectedJoint] = useState(null);
@@ -240,8 +238,6 @@ const DetailedSymptomScreen = ({ navigation }) => {
         setJointSymptoms(todayLog.jointSymptoms || {});
         setFatigue(todayLog.generalSymptoms?.fatigue || {});
         setSleep(todayLog.generalSymptoms?.sleep || {});
-        setMood(todayLog.generalSymptoms?.mood || 3);
-        setStress(todayLog.generalSymptoms?.stress || 3);
         setNotes(todayLog.notes || '');
       }
     } catch (error) {
@@ -277,8 +273,6 @@ const DetailedSymptomScreen = ({ navigation }) => {
         jointSymptoms,
         fatigue,
         sleep,
-        mood,
-        stress,
         notes,
         overallPainScore,
       };
@@ -334,20 +328,6 @@ const DetailedSymptomScreen = ({ navigation }) => {
           value={fatigue.mental || 0}
           onValueChange={(value) => setFatigue(prev => ({ ...prev, mental: value }))}
           color={colors.info}
-        />
-        
-        <SymptomScaleInput
-          title="気分"
-          value={mood}
-          onValueChange={setMood}
-          color={colors.success}
-        />
-        
-        <SymptomScaleInput
-          title="ストレス"
-          value={stress}
-          onValueChange={setStress}
-          color={colors.error}
         />
       </View>
 

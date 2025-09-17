@@ -1,10 +1,13 @@
-# リウマチケア - Rheumatoid Arthritis Care App
+# リウマチケア MVP - Rheumatoid Arthritis Care App
 
 リウマチ患者の症状記録と服薬管理をサポートするモバイルアプリケーション
 
 ##  概要
 
 このアプリは、関節リウマチ患者が日々の症状を記録し、服薬管理を行い、診察時に有用なレポートを生成することを目的としています。患者の自己管理を支援し、医療者との診療の質を向上させます。
+
+<img src="app-homescreen.jpg" alt="アプリホーム画面" width="300">
+
 
 ##  主要機能
 

@@ -47,25 +47,43 @@ export default function App() {
       if (user) {
         // ログイン時にユーザー固有のデータベースに切り替え
         try {
-          await DatabaseService.cleanup(); // 現在のデータベースをクリーンアップ
-          await DatabaseService.init(); // ユーザー固有のデータベースで再初期化
+          const isWeb = typeof window !== 'undefined';
+          
+          if (!isWeb) {
+            // React Native版のみでSQLiteクリーンアップ・初期化
+            await DatabaseService.cleanup();
+            await DatabaseService.init();
+          }
+          
+          // FirestoreモードをONに（Web/React Native共通）
           DatabaseService.setFirestoreMode(true);
           await FirestoreService.createUserProfile();
           
-          // 食事記録のマイグレーションを実行
-          await FoodInteractionService.migrateFoodLogsToFirestore();
+          // 食事記録のマイグレーション（Web版では実行しない）
+          if (!isWeb) {
+            await FoodInteractionService.migrateFoodLogsToFirestore();
+          }
           
           console.log('✅ Firestore mode enabled for user:', user.email, 'UID:', user.uid);
         } catch (error) {
           console.error('❌ User profile creation error:', error);
-          // Firestoreでエラーが発生した場合はSQLiteモードにフォールバック
-          DatabaseService.setFirestoreMode(false);
-          console.log('🔄 Fallback to SQLite mode due to Firestore error');
+          const isWeb = typeof window !== 'undefined';
+          if (!isWeb) {
+            // React Native版のみSQLiteモードにフォールバック
+            DatabaseService.setFirestoreMode(false);
+            console.log('🔄 Fallback to SQLite mode due to Firestore error');
+          } else {
+            // Web版ではFirestoreエラーの場合、エラーをユーザーに表示
+            Alert.alert('接続エラー', 'データベース接続に失敗しました。');
+          }
         }
       } else {
         // ログアウト時のクリーンアップ
-        await DatabaseService.cleanup();
-        console.log('📱 SQLite mode enabled (user logged out)');
+        const isWeb = typeof window !== 'undefined';
+        if (!isWeb) {
+          await DatabaseService.cleanup();
+          console.log('📱 SQLite mode enabled (user logged out)');
+        }
       }
       
       setUser(user);
@@ -77,11 +95,22 @@ export default function App() {
 
   const initializeApp = async () => {
     try {
-      // データベースの初期化
-      await DatabaseService.init();
+      // Web環境かReact Native環境かを判定
+      const isWeb = typeof window !== 'undefined';
       
-      // 通知の初期化
-      await NotificationService.setupNotifications();
+      if (isWeb) {
+        // Web版ではSQLiteを使用せずFirestoreのみを使用
+        DatabaseService.setFirestoreMode(true);
+        console.log('🌐 Web environment detected: Using Firestore only');
+      } else {
+        // React Native版では通常通りSQLiteを初期化
+        await DatabaseService.init();
+      }
+      
+      // 通知の初期化（Web版では無効化される場合がある）
+      if (!isWeb) {
+        await NotificationService.setupNotifications();
+      }
       
       console.log('App initialized successfully');
     } catch (error) {

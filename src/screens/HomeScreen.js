@@ -216,13 +216,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Medication')}
           />
           
-          <QuickActionCard
-            title="食事管理"
-            subtitle="薬物相互作用をチェック"
-            icon="restaurant-outline"
-            color="#FF6B35"
-            onPress={() => navigation.navigate('FoodLog')}
-          />
+
           
           <QuickActionCard
             title="検査値入力"

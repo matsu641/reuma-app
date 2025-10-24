@@ -15,8 +15,7 @@ import AddMedicationScreen from './src/screens/AddMedicationScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PressureHistoryScreen from './src/screens/PressureHistoryScreen';
 import WeatherSettingsScreen from './src/screens/WeatherSettingsScreen';
-import FoodLogScreen from './src/screens/FoodLogScreen';
-import FoodHistoryScreen from './src/screens/FoodHistoryScreen';
+
 import MedicationListScreen from './src/screens/MedicationListScreen';
 import DetailedSymptomScreen from './src/screens/DetailedSymptomScreen';
 import LifePatternAnalysisScreen from './src/screens/LifePatternAnalysisScreen';
@@ -66,8 +65,7 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="PressureHistory" component={PressureHistoryScreen} />
           <Stack.Screen name="WeatherSettings" component={WeatherSettingsScreen} />
-          <Stack.Screen name="FoodLog" component={FoodLogScreen} />
-          <Stack.Screen name="FoodHistory" component={FoodHistoryScreen} />
+
           <Stack.Screen name="MedicationList" component={MedicationListScreen} />
           <Stack.Screen name="DetailedSymptom" component={DetailedSymptomScreen} />
           <Stack.Screen name="LifePatternAnalysis" component={LifePatternAnalysisScreen} />

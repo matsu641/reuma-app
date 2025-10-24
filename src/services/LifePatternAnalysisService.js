@@ -21,11 +21,7 @@ class LifePatternAnalysisService {
         description: '服薬状況が症状改善に与える効果を分析',
         icon: 'medical',
       },
-      symptom_food: {
-        name: '食事と症状の関係',
-        description: '食事内容と症状の関連性を分析',
-        icon: 'restaurant',
-      },
+
       weekly_pattern: {
         name: '曜日別パターン',
         description: '曜日ごとの症状変化パターンを分析',
@@ -71,9 +67,7 @@ class LifePatternAnalysisService {
             case 'symptom_medication':
               result = await this.analyzeSymptomMedicationCorrelation();
               break;
-            case 'symptom_food':
-              result = await this.analyzeSymptomFoodCorrelation();
-              break;
+
             case 'weekly_pattern':
               result = await this.analyzeWeeklyPattern();
               break;
@@ -721,59 +715,7 @@ class LifePatternAnalysisService {
     }
   }
 
-  // 食事と症状の相関分析
-  async analyzeSymptomFoodCorrelation() {
-    try {
-      const symptomLogs = await DetailedHealthService.getDetailedSymptomLogs(30);
-      
-      if (symptomLogs.length < 7) {
-        return { 
-          insufficient_data: true, 
-          message: '分析には少なくとも7日分のデータが必要です' 
-        };
-      }
 
-      // 食事データを取得（AsyncStorageから）
-      const foodData = await this.getFoodLogsForAnalysis(30);
-      
-      if (foodData.length < 7) {
-        return { 
-          insufficient_data: true, 
-          message: '食事記録が不足しています。食事管理機能をご利用ください。' 
-        };
-      }
-
-      // 食品カテゴリと症状の相関を分析
-      const correlations = {};
-      const foodCategories = ['dairy', 'gluten', 'sugar', 'processed', 'inflammatory'];
-      
-      foodCategories.forEach(category => {
-        const categoryData = this.analyzeFoodCategorySymptomCorrelation(
-          foodData, symptomLogs, category
-        );
-        if (categoryData.length > 3) {
-          correlations[`${category}_pain`] = this.calculateCorrelation(
-            categoryData.map(d => d.categoryIntake),
-            categoryData.map(d => d.pain)
-          );
-          correlations[`${category}_inflammation`] = this.calculateCorrelation(
-            categoryData.map(d => d.categoryIntake),
-            categoryData.map(d => d.swelling)
-          );
-        }
-      });
-
-      return {
-        correlations,
-        insights: this.generateFoodInsights(correlations),
-        recommendations: this.generateFoodRecommendations(correlations),
-        data_count: Math.min(foodData.length, symptomLogs.length),
-      };
-    } catch (error) {
-      console.error('Food correlation analysis error:', error);
-      return { error: error.message };
-    }
-  }
 
   // 月間トレンド分析
   async analyzeMonthlyTrend() {
@@ -849,66 +791,7 @@ class LifePatternAnalysisService {
     }
   }
 
-  // 食事ログを取得するヘルパーメソッド
-  async getFoodLogsForAnalysis(days) {
-    try {
-      const logs = await AsyncStorage.getItem('food_logs');
-      if (!logs) return [];
-      
-      const foodLogs = JSON.parse(logs);
-      const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      
-      return foodLogs.filter(log => new Date(log.date) >= cutoffDate);
-    } catch (error) {
-      console.error('Error loading food logs:', error);
-      return [];
-    }
-  }
 
-  // 食品カテゴリと症状の相関分析
-  analyzeFoodCategorySymptomCorrelation(foodLogs, symptomLogs, category) {
-    const combinedData = [];
-    
-    foodLogs.forEach(foodLog => {
-      const matchingSymptom = symptomLogs.find(s => s.date === foodLog.date);
-      if (matchingSymptom) {
-        const categoryIntake = this.calculateCategoryIntake(foodLog.foods, category);
-        combinedData.push({
-          date: foodLog.date,
-          categoryIntake,
-          pain: this.calculateOverallPain(matchingSymptom.jointSymptoms),
-          swelling: this.calculateOverallSwelling(matchingSymptom.jointSymptoms),
-        });
-      }
-    });
-    
-    return combinedData;
-  }
-
-  // カテゴリ別摂取量計算
-  calculateCategoryIntake(foods, category) {
-    const categoryMap = {
-      dairy: ['milk', 'cheese', 'yogurt', 'butter', 'cream'],
-      gluten: ['wheat', 'bread', 'pasta', 'flour', 'noodles'],
-      sugar: ['sugar', 'candy', 'dessert', 'sweet', 'cake'],
-      processed: ['processed', 'instant', 'packaged', 'frozen'],
-      inflammatory: ['fried', 'fast food', 'soda', 'alcohol'],
-    };
-    
-    const keywords = categoryMap[category] || [];
-    let intake = 0;
-    
-    foods.forEach(food => {
-      const foodName = food.name.toLowerCase();
-      keywords.forEach(keyword => {
-        if (foodName.includes(keyword)) {
-          intake += food.amount || 1;
-        }
-      });
-    });
-    
-    return intake;
-  }
 
   // トレンド計算
   calculateTrend(values) {
@@ -932,26 +815,7 @@ class LifePatternAnalysisService {
     return first === 0 ? 0 : ((last - first) / first) * 100;
   }
 
-  // 食事関連の洞察生成
-  generateFoodInsights(correlations) {
-    const insights = [];
-    
-    Object.entries(correlations).forEach(([key, correlation]) => {
-      if (Math.abs(correlation) > 0.5) {
-        const [category, symptom] = key.split('_');
-        const direction = correlation > 0 ? '悪化' : '改善';
-        insights.push({
-          category,
-          symptom,
-          correlation,
-          direction,
-          description: `${category}の摂取が症状の${direction}と関連している可能性があります`,
-        });
-      }
-    });
-    
-    return insights;
-  }
+
 
   // トレンド洞察生成
   generateTrendInsights(trends) {
@@ -990,25 +854,7 @@ class LifePatternAnalysisService {
     }
   }
 
-  // 食事推奨事項生成
-  generateFoodRecommendations(correlations) {
-    const recommendations = [];
-    
-    Object.entries(correlations).forEach(([key, correlation]) => {
-      if (correlation > 0.5) {
-        const [category] = key.split('_');
-        recommendations.push({
-          type: 'food',
-          category,
-          title: `${category}の摂取を控える`,
-          description: `${category}が症状悪化と関連している可能性があります`,
-          priority: 'medium',
-        });
-      }
-    });
-    
-    return recommendations;
-  }
+
 
   // トレンド推奨事項生成
   generateTrendRecommendations(trends) {

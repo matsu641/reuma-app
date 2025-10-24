@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, commonStyles } from '../utils/styles';
 import { formatDateJapanese, formatDate } from '../utils/dateUtils';
 import DatabaseService from '../services/DatabaseService';
+import WeatherService from '../services/WeatherService';
 import SymptomRecorder from '../components/SymptomRecorder';
 import { MedicationTracker } from '../components/MedicationTracker';
 import WeatherWidget from '../components/WeatherWidget';
@@ -28,7 +29,7 @@ const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (
   </TouchableOpacity>
 );
 
-const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
+const TodayStatusCard = ({ painScore, medicationCount, medicationTaken, weatherAlert }) => {
   const getPainLevelText = (score) => {
     if (score === null || score === undefined) return '未記録';
     if (score <= 3) return `軽度 (${score})`;
@@ -43,8 +44,19 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
     return colors.danger;
   };
 
-  const adherenceRate = medicationCount > 0 ? 
-    Math.round((medicationTaken / medicationCount) * 100) : 0;
+  const getWeatherAlertInfo = () => {
+    if (!weatherAlert) return { text: '正常', color: colors.success, icon: 'checkmark-circle' };
+    
+    if (weatherAlert.severity === 'high') {
+      return { text: '要注意', color: colors.danger, icon: 'warning' };
+    } else if (weatherAlert.severity === 'medium') {
+      return { text: '注意', color: colors.warning, icon: 'alert-circle' };
+    }
+    
+    return { text: '軽微', color: colors.warning, icon: 'information-circle' };
+  };
+
+  const weatherInfo = getWeatherAlertInfo();
 
   return (
     <View style={styles.statusCard}>
@@ -66,17 +78,17 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken }) => {
         <View style={styles.statusItem}>
           <View style={styles.statusIconContainer}>
             <Ionicons 
-              name="medical" 
+              name={weatherInfo.icon}
               size={20} 
-              color={adherenceRate >= 85 ? colors.success : colors.warning} 
+              color={weatherInfo.color} 
             />
           </View>
-          <Text style={styles.statusLabel}>服薬遵守率</Text>
+          <Text style={styles.statusLabel}>気圧アラート</Text>
           <Text style={[
             styles.statusValue,
-            { color: adherenceRate >= 85 ? colors.success : colors.warning }
+            { color: weatherInfo.color }
           ]}>
-            {adherenceRate}%
+            {weatherInfo.text}
           </Text>
         </View>
       </View>
@@ -90,6 +102,7 @@ const HomeScreen = ({ navigation }) => {
     medicationCount: 0,
     medicationTaken: 0,
   });
+  const [weatherAlert, setWeatherAlert] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSymptomRecorder, setShowSymptomRecorder] = useState(false);
 
@@ -125,6 +138,18 @@ const HomeScreen = ({ navigation }) => {
         medicationCount: totalScheduled,
         medicationTaken: totalTaken,
       });
+
+      // 天気アラートを取得
+      try {
+        const weather = await WeatherService.getCurrentWeather();
+        if (weather && weather.pressure) {
+          const alert = await WeatherService.checkPressureAlert(weather.pressure);
+          setWeatherAlert(alert);
+        }
+      } catch (weatherError) {
+        console.error('Error loading weather alert:', weatherError);
+        setWeatherAlert(null);
+      }
     } catch (error) {
       console.error('Error loading today data:', error);
     }
@@ -187,6 +212,7 @@ const HomeScreen = ({ navigation }) => {
           painScore={todayData.painScore}
           medicationCount={todayData.medicationCount}
           medicationTaken={todayData.medicationTaken}
+          weatherAlert={weatherAlert}
         />
         
         <View style={styles.quickActionsContainer}>

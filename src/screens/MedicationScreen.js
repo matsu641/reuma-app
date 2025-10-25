@@ -3,9 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  RefreshControl,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,16 +43,13 @@ const MedicationScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-        }
-      >
+      <View style={styles.content}>
         <MedicationTracker
           key={`tracker-${refreshKey}`}
           onRecorded={handleMedicationRecorded}
           navigation={navigation}
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
         />
         
         <View style={commonStyles.card}>
@@ -93,7 +88,7 @@ const MedicationScreen = ({ navigation }) => {
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 };

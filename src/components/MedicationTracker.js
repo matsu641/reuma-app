@@ -7,6 +7,7 @@ import {
   Alert,
   FlatList,
   Switch,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, commonStyles } from '../utils/styles';
@@ -124,7 +125,7 @@ const MedicationItem = ({ medication, onTaken }) => {
   );
 };
 
-const MedicationTracker = ({ onRecorded, navigation }) => {
+const MedicationTracker = ({ onRecorded, navigation, refreshing, onRefresh }) => {
   const [medications, setMedications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -227,6 +228,15 @@ const MedicationTracker = ({ onRecorded, navigation }) => {
             />
           )}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing || false} 
+              onRefresh={() => {
+                loadMedications();
+                if (onRefresh) onRefresh();
+              }}
+            />
+          }
         />
       </View>
     </View>

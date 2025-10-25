@@ -304,7 +304,7 @@ const SettingsScreen = ({ navigation }) => {
             title="お問い合わせ"
             subtitle="質問や要望をお送りください"
             icon="mail-outline"
-            onPress={() => Alert.alert('準備中', 'お問い合わせ機能は今後追加予定です。')}
+            onPress={() => navigation.navigate('Contact')}
           />
           
           <SettingItem

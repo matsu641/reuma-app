@@ -19,6 +19,7 @@ import WeatherSettingsScreen from './src/screens/WeatherSettingsScreen';
 import MedicationListScreen from './src/screens/MedicationListScreen';
 import DetailedSymptomScreen from './src/screens/DetailedSymptomScreen';
 import LifePatternAnalysisScreen from './src/screens/LifePatternAnalysisScreen';
+import ContactScreen from './src/screens/ContactScreen';
 
 // Services
 import DatabaseService from './src/services/DatabaseService';
@@ -69,6 +70,7 @@ export default function App() {
           <Stack.Screen name="MedicationList" component={MedicationListScreen} />
           <Stack.Screen name="DetailedSymptom" component={DetailedSymptomScreen} />
           <Stack.Screen name="LifePatternAnalysis" component={LifePatternAnalysisScreen} />
+          <Stack.Screen name="Contact" component={ContactScreen} />
         </Stack.Navigator>
         <StatusBar style="dark" />
       </NavigationContainer>

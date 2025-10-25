@@ -115,33 +115,36 @@ const JointMapView = ({ jointSymptoms, onJointPress }) => {
   );
 };
 
-const SymptomScaleInput = ({ title, value, onValueChange, maxLevel = 5, color = colors.primary }) => {
+const SymptomScaleInput = ({ title, value, onValueChange, color = colors.primary }) => {
+  const levels = [
+    { value: 0, label: '良い', color: colors.success },
+    { value: 1, label: '普通', color: colors.warning },
+    { value: 2, label: '悪い', color: colors.danger }
+  ];
+
   return (
     <View style={styles.scaleContainer}>
       <Text style={styles.scaleTitle}>{title}</Text>
       <View style={styles.scaleButtons}>
-        {Array.from({ length: maxLevel + 1 }, (_, i) => (
+        {levels.map((level) => (
           <TouchableOpacity
-            key={i}
+            key={level.value}
             style={[
               styles.scaleButton,
-              value === i && styles.scaleButtonActive,
-              value === i && { backgroundColor: color }
+              styles.simpleScaleButton,
+              value === level.value && styles.scaleButtonActive,
+              value === level.value && { backgroundColor: level.color }
             ]}
-            onPress={() => onValueChange(i)}
+            onPress={() => onValueChange(level.value)}
           >
             <Text style={[
               styles.scaleButtonText,
-              value === i && styles.scaleButtonTextActive
+              value === level.value && styles.scaleButtonTextActive
             ]}>
-              {i}
+              {level.label}
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
-      <View style={styles.scaleLabels}>
-        <Text style={styles.scaleLabelText}>なし</Text>
-        <Text style={styles.scaleLabelText}>非常に強い</Text>
       </View>
     </View>
   );
@@ -171,37 +174,30 @@ const JointSymptomModal = ({ visible, joint, jointLabel, symptoms, onSave, onClo
             title="痛み"
             value={localSymptoms.pain || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, pain: value }))}
-            color={colors.error}
           />
           
           <SymptomScaleInput
             title="腫脹"
             value={localSymptoms.swelling || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, swelling: value }))}
-            color={colors.info}
           />
           
           <SymptomScaleInput
             title="こわばり"
             value={localSymptoms.stiffness || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, stiffness: value }))}
-            color={colors.warning}
           />
           
           <SymptomScaleInput
             title="発赤"
             value={localSymptoms.redness || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, redness: value }))}
-            maxLevel={3}
-            color="#F9A825"
           />
           
           <SymptomScaleInput
             title="熱感"
             value={localSymptoms.warmth || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, warmth: value }))}
-            maxLevel={3}
-            color="#E85D75"
           />
         </ScrollView>
         
@@ -220,10 +216,8 @@ const JointSymptomModal = ({ visible, joint, jointLabel, symptoms, onSave, onClo
 
 const DetailedSymptomScreen = ({ navigation }) => {
   const [jointSymptoms, setJointSymptoms] = useState({});
-  const [fatigue, setFatigue] = useState({});
-  const [sleep, setSleep] = useState({});
-  const [mood, setMood] = useState(3);
-  const [stress, setStress] = useState(3);
+  const [sleep, setSleep] = useState({ quality: 1, morning_stiffness: 1 });
+  const [mood, setMood] = useState(1);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedJoint, setSelectedJoint] = useState(null);
@@ -238,10 +232,8 @@ const DetailedSymptomScreen = ({ navigation }) => {
       const todayLog = await DetailedHealthService.getTodayDetailedLog();
       if (todayLog) {
         setJointSymptoms(todayLog.jointSymptoms || {});
-        setFatigue(todayLog.generalSymptoms?.fatigue || {});
-        setSleep(todayLog.generalSymptoms?.sleep || {});
-        setMood(todayLog.generalSymptoms?.mood || 3);
-        setStress(todayLog.generalSymptoms?.stress || 3);
+        setSleep(todayLog.generalSymptoms?.sleep || { quality: 1, morning_stiffness: 1 });
+        setMood(todayLog.generalSymptoms?.mood || 1);
         setNotes(todayLog.notes || '');
       }
     } catch (error) {
@@ -275,10 +267,8 @@ const DetailedSymptomScreen = ({ navigation }) => {
       const data = {
         date: new Date().toISOString().split('T')[0],
         jointSymptoms,
-        fatigue,
         sleep,
         mood,
-        stress,
         notes,
         overallPainScore,
       };
@@ -323,78 +313,21 @@ const DetailedSymptomScreen = ({ navigation }) => {
         <Text style={styles.sectionTitle}>全身症状</Text>
         
         <SymptomScaleInput
-          title="身体的疲労"
-          value={fatigue.physical || 0}
-          onValueChange={(value) => setFatigue(prev => ({ ...prev, physical: value }))}
-          color={colors.warning}
-        />
-        
-        <SymptomScaleInput
-          title="精神的疲労"
-          value={fatigue.mental || 0}
-          onValueChange={(value) => setFatigue(prev => ({ ...prev, mental: value }))}
-          color={colors.info}
-        />
-        
-        <SymptomScaleInput
           title="気分"
           value={mood}
           onValueChange={setMood}
-          color={colors.success}
         />
-        
-        <SymptomScaleInput
-          title="ストレス"
-          value={stress}
-          onValueChange={setStress}
-          color={colors.error}
-        />
-      </View>
-
-      {/* 睡眠 */}
-      <View style={commonStyles.card}>
-        <Text style={styles.sectionTitle}>睡眠</Text>
-        
-        <View style={styles.inputRow}>
-          <Text style={styles.inputLabel}>睡眠時間</Text>
-          <View style={styles.sleepInput}>
-            <TextInput
-              style={styles.numberInput}
-              value={sleep.duration?.toString() || ''}
-              onChangeText={(text) => setSleep(prev => ({ ...prev, duration: parseFloat(text) || 0 }))}
-              keyboardType="numeric"
-              placeholder="8"
-            />
-            <Text style={styles.inputUnit}>時間</Text>
-          </View>
-        </View>
         
         <SymptomScaleInput
           title="睡眠の質"
-          value={sleep.quality || 0}
+          value={sleep.quality || 1}
           onValueChange={(value) => setSleep(prev => ({ ...prev, quality: value }))}
-          color={colors.primary}
         />
-        
-        <View style={styles.inputRow}>
-          <Text style={styles.inputLabel}>中途覚醒回数</Text>
-          <View style={styles.sleepInput}>
-            <TextInput
-              style={styles.numberInput}
-              value={sleep.interruptions?.toString() || ''}
-              onChangeText={(text) => setSleep(prev => ({ ...prev, interruptions: parseInt(text) || 0 }))}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-            <Text style={styles.inputUnit}>回</Text>
-          </View>
-        </View>
         
         <SymptomScaleInput
           title="朝のこわばり"
-          value={sleep.morning_stiffness || 0}
+          value={sleep.morning_stiffness || 1}
           onValueChange={(value) => setSleep(prev => ({ ...prev, morning_stiffness: value }))}
-          color={colors.warning}
         />
       </View>
 
@@ -584,6 +517,13 @@ const styles = StyleSheet.create({
   scaleButtonTextActive: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+
+  simpleScaleButton: {
+    width: 80,
+    height: 45,
+    borderRadius: 22,
+    paddingHorizontal: spacing.sm,
   },
   
   scaleLabels: {

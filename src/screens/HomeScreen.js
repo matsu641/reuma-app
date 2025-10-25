@@ -32,16 +32,14 @@ const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (
 const TodayStatusCard = ({ painScore, medicationCount, medicationTaken, weatherAlert }) => {
   const getPainLevelText = (score) => {
     if (score === null || score === undefined) return '未記録';
-    if (score <= 3) return `軽度 (${score})`;
-    if (score <= 6) return `中程度 (${score})`;
-    return `重度 (${score})`;
+    const levels = { 0: '良い', 1: '普通', 2: '悪い' };
+    return levels[score] || '未記録';
   };
 
   const getPainColor = (score) => {
     if (score === null || score === undefined) return colors.gray;
-    if (score <= 3) return colors.success;
-    if (score <= 6) return colors.warning;
-    return colors.danger;
+    const levelColors = { 0: colors.success, 1: colors.warning, 2: colors.danger };
+    return levelColors[score] || colors.gray;
   };
 
   const getWeatherAlertInfo = () => {

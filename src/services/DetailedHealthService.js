@@ -283,24 +283,28 @@ class DetailedHealthService {
     return 'none';
   }
 
-  // 症状の色取得
+  // 症状の色取得（3段階評価対応）
   getSymptomColor(symptom, level) {
-    const baseColor = this.symptomTypes[symptom]?.color || '#999';
-    const opacity = Math.max(0.2, level / 5);
-    return baseColor + Math.floor(opacity * 255).toString(16).padStart(2, '0');
+    // 0: 良い（緑）, 1: 普通（黄）, 2: 悪い（赤）
+    const colors = {
+      0: '#4CAF50', // 良い - 緑
+      1: '#FF9800', // 普通 - オレンジ  
+      2: '#F44336'  // 悪い - 赤
+    };
+    return colors[level] || '#999';
   }
 
-  // 関節の表示サイズ取得
+  // 関節の表示サイズ取得（3段階評価対応）
   getJointDisplaySize(joint, level) {
     const baseSize = this.jointAreas[joint]?.size || 'medium';
     const sizeMap = {
-      small: { base: 12, multiplier: 1 },      // 小さい関節: 12-17px
-      medium: { base: 16, multiplier: 1.5 },   // 中程度の関節: 16-23.5px
-      large: { base: 20, multiplier: 2 }       // 大きい関節: 20-30px
+      small: { base: 12, sizes: [12, 15, 18] },    // 小さい関節
+      medium: { base: 16, sizes: [16, 20, 24] },   // 中程度の関節  
+      large: { base: 20, sizes: [20, 25, 30] }     // 大きい関節
     };
     
     const config = sizeMap[baseSize];
-    return config.base + (level * config.multiplier);
+    return config.sizes[level] || config.base;
   }
 }
 

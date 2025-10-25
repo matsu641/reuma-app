@@ -272,7 +272,7 @@ const WeatherWidget = ({ navigation }) => {
           onPress={() => navigation.navigate('WeatherSettings')}
         >
           <Ionicons name="settings-outline" size={20} color={colors.primary} />
-          <Text style={styles.actionButtonText}>設定</Text>
+          <Text style={styles.actionButtonText}>天気設定</Text>
         </TouchableOpacity>
       </View>
 

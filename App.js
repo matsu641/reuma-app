@@ -9,7 +9,6 @@ import { Alert } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
 import MedicationScreen from './src/screens/MedicationScreen';
 import LabValuesScreen from './src/screens/LabValuesScreen';
-import ChartsScreen from './src/screens/ChartsScreen';
 import AddMedicationScreen from './src/screens/AddMedicationScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PressureHistoryScreen from './src/screens/PressureHistoryScreen';
@@ -59,7 +58,6 @@ export default function App() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Medication" component={MedicationScreen} />
           <Stack.Screen name="LabValues" component={LabValuesScreen} />
-          <Stack.Screen name="Charts" component={ChartsScreen} />
           <Stack.Screen name="AddMedication" component={AddMedicationScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="PressureHistory" component={PressureHistoryScreen} />

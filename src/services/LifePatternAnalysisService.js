@@ -914,6 +914,321 @@ class LifePatternAnalysisService {
     
     return recommendations;
   }
+
+  // 症状トレンドデータの取得
+  async getSymptomTrends(period) {
+    try {
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - period * 24 * 60 * 60 * 1000);
+      
+      // 基本症状ログを取得
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      const basicSymptoms = await DatabaseService.getSymptomLogs(startDateStr, endDateStr);
+      
+      // 詳細症状ログからも症状データを取得
+      const detailedLogs = await DetailedHealthService.getDetailedSymptomLogs(period);
+      
+      const symptomTrends = [];
+      
+      for (let i = 0; i < period; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        // 基本症状から痛みレベルを取得
+        const basicSymptom = basicSymptoms.find(s => s.date === dateStr);
+        let avgPainLevel = basicSymptom?.pain_score || 0;
+        
+        // 詳細症状があれば優先して使用
+        const detailedLog = detailedLogs.find(log => log.date === dateStr);
+        if (detailedLog && detailedLog.jointSymptoms) {
+          const jointPains = Object.values(detailedLog.jointSymptoms)
+            .map(s => s.pain || 0)
+            .filter(pain => pain > 0);
+          
+          if (jointPains.length > 0) {
+            avgPainLevel = jointPains.reduce((sum, pain) => sum + pain, 0) / jointPains.length;
+          }
+        }
+        
+        symptomTrends.push({
+          date: dateStr,
+          avgPainLevel,
+          stiffness: detailedLog?.sleep?.morning_stiffness || 0,
+          mood: detailedLog?.mood || 0
+        });
+      }
+      
+      return symptomTrends.reverse();
+    } catch (error) {
+      console.error('Error getting symptom trends:', error);
+      return [];
+    }
+  }
+
+  // 天候相関データの取得
+  async getWeatherCorrelationData(period) {
+    try {
+      // 簡単な実装：天候データがある場合の処理
+      // 実際の実装では WeatherService から過去のデータを取得
+      return [];
+    } catch (error) {
+      console.error('Error getting weather correlation data:', error);
+      return [];
+    }
+  }
+
+  // 統合データ分析（旧ChartsScreen機能を統合）
+  async getIntegratedHealthAnalysis(period = 30) {
+    try {
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - period * 24 * 60 * 60 * 1000);
+
+      // 各種データを取得
+      const [
+        symptomData,
+        medicationData, 
+        labData,
+        detailedLogs,
+        weatherData
+      ] = await Promise.all([
+        this.getSymptomTrends(period),
+        this.getMedicationAdherenceData(period),
+        this.getLabValueTrends(period),
+        DetailedHealthService.getDetailedSymptomLogs(period),
+        this.getWeatherCorrelationData(period)
+      ]);
+
+      return {
+        period,
+        summary: this.generateHealthSummary(symptomData, medicationData, labData),
+        trends: this.analyzeTrends(symptomData, medicationData, labData),
+        correlations: this.analyzeCorrelations(symptomData, medicationData, weatherData),
+        insights: this.generateHealthInsights(symptomData, medicationData, labData),
+        recommendations: this.generateActionableRecommendations(symptomData, medicationData)
+      };
+    } catch (error) {
+      console.error('Error in integrated health analysis:', error);
+      throw error;
+    }
+  }
+
+  analyzeCorrelations(symptomData, medicationData, weatherData) {
+    try {
+      const correlations = {};
+      
+      // 症状と服薬の相関
+      if (symptomData.length > 5 && medicationData.length > 5) {
+        const painLevels = symptomData.map(s => s.avgPainLevel || 0);
+        const adherenceRates = medicationData.map(m => m.adherenceRate || 0);
+        
+        if (painLevels.length === adherenceRates.length) {
+          correlations.pain_adherence = this.calculateCorrelation(painLevels, adherenceRates);
+        }
+      }
+      
+      // 症状と気分の相関
+      const moodData = symptomData.filter(s => s.mood > 0).map(s => s.mood);
+      const painForMood = symptomData.filter(s => s.mood > 0).map(s => s.avgPainLevel || 0);
+      
+      if (moodData.length > 3) {
+        correlations.pain_mood = this.calculateCorrelation(painForMood, moodData);
+      }
+      
+      return correlations;
+    } catch (error) {
+      console.error('Error analyzing correlations:', error);
+      return {};
+    }
+  }
+
+  calculateCorrelation(x, y) {
+    if (x.length !== y.length || x.length < 2) return 0;
+    
+    const n = x.length;
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
+    const sumXY = x.map((xi, i) => xi * y[i]).reduce((a, b) => a + b, 0);
+    const sumXX = x.map(xi => xi * xi).reduce((a, b) => a + b, 0);
+    const sumYY = y.map(yi => yi * yi).reduce((a, b) => a + b, 0);
+    
+    const numerator = n * sumXY - sumX * sumY;
+    const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY));
+    
+    return denominator === 0 ? 0 : numerator / denominator;
+  }
+
+  async getMedicationAdherenceData(period) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const medications = await DatabaseService.getMedications();
+      const adherenceData = [];
+
+      for (let i = 0; i < period; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const logs = await DatabaseService.getMedicationLogs(dateStr, dateStr);
+        const totalScheduled = medications.reduce((sum, med) => sum + med.times.length, 0);
+        const totalTaken = logs.filter(log => log.taken === 1).length;
+        const adherenceRate = totalScheduled > 0 ? (totalTaken / totalScheduled) * 100 : 0;
+
+        adherenceData.push({
+          date: dateStr,
+          adherenceRate,
+          totalScheduled,
+          totalTaken
+        });
+      }
+
+      return adherenceData.reverse();
+    } catch (error) {
+      console.error('Error getting medication adherence data:', error);
+      return [];
+    }
+  }
+
+  async getLabValueTrends(period) {
+    try {
+      const labValues = await DatabaseService.getLabValues();
+      const recentLabs = labValues.filter(lab => {
+        const labDate = new Date(lab.test_date);
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - period);
+        return labDate >= cutoffDate;
+      });
+
+      return recentLabs.sort((a, b) => new Date(a.test_date) - new Date(b.test_date));
+    } catch (error) {
+      console.error('Error getting lab value trends:', error);
+      return [];
+    }
+  }
+
+  generateHealthSummary(symptomData, medicationData, labData) {
+    const avgPainLevel = symptomData.length > 0 
+      ? symptomData.reduce((sum, s) => sum + (s.avgPainLevel || 0), 0) / symptomData.length 
+      : 0;
+
+    const avgAdherence = medicationData.length > 0
+      ? medicationData.reduce((sum, m) => sum + m.adherenceRate, 0) / medicationData.length
+      : 0;
+
+    const latestCRP = labData.filter(l => l.crp_value).sort((a, b) => new Date(b.test_date) - new Date(a.test_date))[0];
+    const latestESR = labData.filter(l => l.esr_value).sort((a, b) => new Date(b.test_date) - new Date(a.test_date))[0];
+
+    return {
+      recordDays: symptomData.length,
+      avgPainLevel: Math.round(avgPainLevel * 10) / 10,
+      medicationAdherence: Math.round(avgAdherence),
+      latestCRP: latestCRP?.crp_value || null,
+      latestESR: latestESR?.esr_value || null,
+      overallTrend: this.calculateOverallTrend(symptomData)
+    };
+  }
+
+  analyzeTrends(symptomData, medicationData, labData) {
+    return {
+      symptomTrend: this.calculateTrendDirection(symptomData.map(s => s.avgPainLevel || 0)),
+      adherenceTrend: this.calculateTrendDirection(medicationData.map(m => m.adherenceRate)),
+      inflammationTrend: this.calculateInflammationTrend(labData)
+    };
+  }
+
+  calculateTrendDirection(values) {
+    if (values.length < 2) return 'stable';
+    
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.ceil(values.length / 2));
+    
+    const firstAvg = firstHalf.reduce((sum, v) => sum + v, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, v) => sum + v, 0) / secondHalf.length;
+    
+    const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+    
+    if (change > 10) return 'worsening';
+    if (change < -10) return 'improving';
+    return 'stable';
+  }
+
+  calculateInflammationTrend(labData) {
+    const crpValues = labData.filter(l => l.crp_value).map(l => l.crp_value);
+    if (crpValues.length < 2) return 'insufficient_data';
+    return this.calculateTrendDirection(crpValues);
+  }
+
+  generateHealthInsights(symptomData, medicationData, labData) {
+    const insights = [];
+    const summary = this.generateHealthSummary(symptomData, medicationData, labData);
+
+    // 症状トレンドに基づくインサイト
+    if (summary.avgPainLevel <= 1.5) {
+      insights.push({
+        type: 'positive',
+        icon: 'checkmark-circle',
+        title: '症状管理良好',
+        description: '痛みレベルが良好に管理されています'
+      });
+    } else if (summary.avgPainLevel >= 2.5) {
+      insights.push({
+        type: 'warning',
+        icon: 'warning',
+        title: '症状管理の見直しが必要',
+        description: '痛みレベルが高めです。治療方針の見直しを検討してください'
+      });
+    }
+
+    // 服薬遵守率に基づくインサイト
+    if (summary.medicationAdherence >= 85) {
+      insights.push({
+        type: 'positive',
+        icon: 'medical',
+        title: '優良な服薬遵守',
+        description: '服薬遵守率が目標値を上回っています'
+      });
+    } else if (summary.medicationAdherence < 70) {
+      insights.push({
+        type: 'suggestion',
+        icon: 'alarm',
+        title: '服薬管理の改善',
+        description: 'リマインダーの設定で服薬遵守率を向上させましょう'
+      });
+    }
+
+    return insights;
+  }
+
+  generateActionableRecommendations(symptomData, medicationData) {
+    const recommendations = [];
+    
+    // データに基づく推奨事項を生成
+    const avgAdherence = medicationData.reduce((sum, m) => sum + m.adherenceRate, 0) / medicationData.length;
+    
+    if (avgAdherence < 80) {
+      recommendations.push({
+        type: 'medication',
+        priority: 'high',
+        title: '服薬管理の強化',
+        description: '服薬リマインダーアプリの活用や服薬カレンダーの使用をお勧めします',
+        actions: ['リマインダー設定', '服薬記録の改善']
+      });
+    }
+
+    return recommendations;
+  }
+
+  calculateOverallTrend(symptomData) {
+    if (symptomData.length < 7) return 'insufficient_data';
+    
+    const recentAvg = symptomData.slice(-7).reduce((sum, s) => sum + (s.avgPainLevel || 0), 0) / 7;
+    const previousAvg = symptomData.slice(-14, -7).reduce((sum, s) => sum + (s.avgPainLevel || 0), 0) / 7;
+    
+    if (recentAvg < previousAvg * 0.9) return 'improving';
+    if (recentAvg > previousAvg * 1.1) return 'worsening';
+    return 'stable';
+  }
 }
 
 export default new LifePatternAnalysisService();

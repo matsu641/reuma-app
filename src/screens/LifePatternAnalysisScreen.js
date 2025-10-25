@@ -189,11 +189,72 @@ const TriggerAnalysis = ({ triggers }) => {
   );
 };
 
+const TrendItem = ({ title, trend, icon }) => {
+  const getTrendInfo = (trend) => {
+    switch (trend) {
+      case 'improving':
+        return { icon: 'trending-down', color: colors.success, text: '改善傾向' };
+      case 'worsening':
+        return { icon: 'trending-up', color: colors.danger, text: '悪化傾向' };
+      case 'stable':
+        return { icon: 'remove', color: colors.info, text: '安定' };
+      default:
+        return { icon: 'help-circle', color: colors.gray, text: 'データ不足' };
+    }
+  };
+
+  const trendInfo = getTrendInfo(trend);
+
+  return (
+    <View style={styles.trendItem}>
+      <View style={styles.trendLeft}>
+        <Ionicons name={icon} size={20} color={colors.primary} />
+        <Text style={styles.trendTitle}>{title}</Text>
+      </View>
+      <View style={styles.trendRight}>
+        <Ionicons name={trendInfo.icon} size={16} color={trendInfo.color} />
+        <Text style={[styles.trendText, { color: trendInfo.color }]}>
+          {trendInfo.text}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const RecommendationCard = ({ type, title, description, actions, priority }) => {
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return colors.danger;
+      case 'medium': return colors.warning;
+      case 'low': return colors.info;
+      default: return colors.primary;
+    }
+  };
+
+  return (
+    <View style={styles.recommendationCard}>
+      <View style={styles.recommendationHeader}>
+        <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(priority) }]} />
+        <Text style={styles.recommendationTitle}>{title}</Text>
+      </View>
+      <Text style={styles.recommendationDescription}>{description}</Text>
+      {actions && actions.length > 0 && (
+        <View style={styles.actionList}>
+          {actions.map((action, index) => (
+            <Text key={index} style={styles.actionItem}>• {action}</Text>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
 const LifePatternAnalysisScreen = ({ navigation }) => {
   const [analysisData, setAnalysisData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState('correlations');
+  const [selectedTab, setSelectedTab] = useState('overview');
+  const [integratedData, setIntegratedData] = useState(null);
 
   useEffect(() => {
     loadAnalysisData();
@@ -218,6 +279,10 @@ const LifePatternAnalysisScreen = ({ navigation }) => {
       }
       
       setAnalysisData(data);
+
+      // 統合健康データ分析も読み込み
+      const integrated = await LifePatternAnalysisService.getIntegratedHealthAnalysis(30);
+      setIntegratedData(integrated);
     } catch (error) {
       console.error('Load analysis data error:', error);
     } finally {
@@ -248,12 +313,69 @@ const LifePatternAnalysisScreen = ({ navigation }) => {
     }
   };
 
+  const renderOverviewTab = () => {
+    if (!integratedData) return <Text style={styles.loadingText}>データを読み込み中...</Text>;
+
+    const { summary, trends, insights } = integratedData;
+
+    return (
+      <View>
+        {/* 健康データサマリー */}
+        <View style={commonStyles.card}>
+          <Text style={styles.sectionTitle}>健康データ概要</Text>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{summary.recordDays}</Text>
+              <Text style={styles.summaryLabel}>記録日数</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{summary.avgPainLevel}</Text>
+              <Text style={styles.summaryLabel}>平均痛みレベル</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{summary.medicationAdherence}%</Text>
+              <Text style={styles.summaryLabel}>服薬遵守率</Text>
+            </View>
+            {summary.latestCRP && (
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryValue}>{summary.latestCRP}</Text>
+                <Text style={styles.summaryLabel}>最新CRP</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* トレンド分析 */}
+        <View style={commonStyles.card}>
+          <Text style={styles.sectionTitle}>トレンド分析</Text>
+          <TrendItem
+            title="症状トレンド"
+            trend={trends.symptomTrend}
+            icon="body"
+          />
+          <TrendItem
+            title="服薬遵守トレンド"
+            trend={trends.adherenceTrend}
+            icon="medical"
+          />
+          <TrendItem
+            title="炎症指標トレンド"
+            trend={trends.inflammationTrend}
+            icon="analytics"
+          />
+        </View>
+      </View>
+    );
+  };
+
   const renderTabContent = () => {
     if (!analysisData?.results) return null;
 
     const { results } = analysisData;
 
     switch (selectedTab) {
+      case 'overview':
+        return renderOverviewTab();
       case 'correlations':
         return (
           <View>
@@ -403,6 +525,14 @@ const LifePatternAnalysisScreen = ({ navigation }) => {
 
       {/* タブナビゲーション */}
       <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'overview' && styles.activeTab]}
+          onPress={() => setSelectedTab('overview')}
+        >
+          <Text style={[styles.tabText, selectedTab === 'overview' && styles.activeTabText]}>
+            総合データ
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'correlations' && styles.activeTab]}
           onPress={() => setSelectedTab('correlations')}
@@ -756,6 +886,114 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+
+  // 総合データタブ用のスタイル
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+
+  summaryItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    padding: spacing.sm,
+    backgroundColor: colors.lightGray,
+    borderRadius: 8,
+  },
+
+  summaryValue: {
+    fontSize: fontSize.xl,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: spacing.xs,
+  },
+
+  summaryLabel: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  trendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+
+  trendLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  trendTitle: {
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    marginLeft: spacing.sm,
+  },
+
+  trendRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  trendText: {
+    fontSize: fontSize.sm,
+    marginLeft: spacing.xs,
+  },
+
+  recommendationCard: {
+    backgroundColor: colors.lightGray,
+    padding: spacing.md,
+    borderRadius: 8,
+    marginBottom: spacing.sm,
+  },
+
+  recommendationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+
+  priorityIndicator: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: spacing.sm,
+  },
+
+  recommendationTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+
+  recommendationDescription: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+
+  actionList: {
+    marginTop: spacing.xs,
+  },
+
+  actionItem: {
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+
+  loadingText: {
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    margin: spacing.lg,
   },
 });
 

@@ -250,11 +250,13 @@ const WeatherWidget = ({ navigation }) => {
         <PressureAlert alert={pressureAlert} onDismiss={dismissAlert} />
       )}
       
-      <WeatherCard 
-        weather={weather} 
-        onRefresh={handleRefresh} 
-        isLoading={isLoading}
-      />
+      <View style={styles.weatherCardContainer}>
+        <WeatherCard 
+          weather={weather} 
+          onRefresh={handleRefresh} 
+          isLoading={isLoading}
+        />
+      </View>
       
       <View style={styles.actionsContainer}>
         <TouchableOpacity 
@@ -286,6 +288,10 @@ const WeatherWidget = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.lg,
+  },
+
+  weatherCardContainer: {
+    paddingHorizontal: spacing.md,
   },
   
   weatherCard: {

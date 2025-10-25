@@ -67,12 +67,7 @@ const ChartsScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>データ分析</Text>
-        <TouchableOpacity 
-          style={styles.shareButton}
-          onPress={() => navigation.navigate('Reports')}
-        >
-          <Ionicons name="share-outline" size={24} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerRight} />
       </View>
 
       <View style={styles.periodContainer}>
@@ -221,9 +216,9 @@ const styles = StyleSheet.create({
   backButton: {
     padding: spacing.xs,
   },
-  
-  shareButton: {
-    padding: spacing.xs,
+
+  headerRight: {
+    width: 32,
   },
   
   periodContainer: {

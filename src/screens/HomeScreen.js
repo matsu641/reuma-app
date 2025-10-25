@@ -251,19 +251,11 @@ const HomeScreen = ({ navigation }) => {
           />
           
           <QuickActionCard
-            title="グラフ表示"
+            title="チャート"
             subtitle="症状の推移を確認"
             icon="bar-chart-outline"
             color={colors.success}
             onPress={() => navigation.navigate('Charts')}
-          />
-          
-          <QuickActionCard
-            title="診察レポート"
-            subtitle="データを共有・印刷"
-            icon="document-text-outline"
-            color={colors.warning}
-            onPress={() => navigation.navigate('Reports')}
           />
           
           <QuickActionCard

@@ -43,7 +43,7 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken, weatherA
   };
 
   const getWeatherAlertInfo = () => {
-    if (!weatherAlert) return { text: '正常', color: colors.success, icon: 'checkmark-circle' };
+    if (!weatherAlert) return { text: '安定', color: colors.success, icon: 'checkmark-circle' };
     
     if (weatherAlert.severity === 'high') {
       return { text: '要注意', color: colors.danger, icon: 'warning' };
@@ -81,7 +81,7 @@ const TodayStatusCard = ({ painScore, medicationCount, medicationTaken, weatherA
               color={weatherInfo.color} 
             />
           </View>
-          <Text style={styles.statusLabel}>気圧アラート</Text>
+          <Text style={styles.statusLabel}>気圧変化</Text>
           <Text style={[
             styles.statusValue,
             { color: weatherInfo.color }

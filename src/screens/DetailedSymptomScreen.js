@@ -98,15 +98,19 @@ const JointMapView = ({ jointSymptoms, onJointPress }) => {
       <View style={styles.legend}>
         <Text style={styles.legendTitle}>症状レベル</Text>
         <View style={styles.legendItems}>
-          {[1, 2, 3, 4, 5].map(level => (
+          {[
+            { level: 0, label: 'なし', color: '#4CAF50' },
+            { level: 1, label: '軽度', color: '#FF9800' },
+            { level: 2, label: '重度', color: '#F44336' }
+          ].map(({ level, label, color }) => (
             <View key={level} style={styles.legendItem}>
               <View 
                 style={[
                   styles.legendCircle, 
-                  { backgroundColor: DetailedHealthService.getSymptomColor('pain', level) }
+                  { backgroundColor: color }
                 ]} 
               />
-              <Text style={styles.legendText}>{level}</Text>
+              <Text style={styles.legendText}>{label}</Text>
             </View>
           ))}
         </View>
@@ -115,12 +119,22 @@ const JointMapView = ({ jointSymptoms, onJointPress }) => {
   );
 };
 
-const SymptomScaleInput = ({ title, value, onValueChange, color = colors.primary }) => {
-  const levels = [
+const SymptomScaleInput = ({ title, value, onValueChange, isJointSymptom = false }) => {
+  // 関節症状用の表現
+  const jointLevels = [
+    { value: 0, label: 'なし', color: colors.success },
+    { value: 1, label: '軽度', color: colors.warning },
+    { value: 2, label: '重度', color: colors.danger }
+  ];
+
+  // 全身症状用の表現
+  const generalLevels = [
     { value: 0, label: '良い', color: colors.success },
     { value: 1, label: '普通', color: colors.warning },
     { value: 2, label: '悪い', color: colors.danger }
   ];
+
+  const levels = isJointSymptom ? jointLevels : generalLevels;
 
   return (
     <View style={styles.scaleContainer}>
@@ -174,30 +188,35 @@ const JointSymptomModal = ({ visible, joint, jointLabel, symptoms, onSave, onClo
             title="痛み"
             value={localSymptoms.pain || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, pain: value }))}
+            isJointSymptom={true}
           />
           
           <SymptomScaleInput
             title="腫脹"
             value={localSymptoms.swelling || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, swelling: value }))}
+            isJointSymptom={true}
           />
           
           <SymptomScaleInput
             title="こわばり"
             value={localSymptoms.stiffness || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, stiffness: value }))}
+            isJointSymptom={true}
           />
           
           <SymptomScaleInput
             title="発赤"
             value={localSymptoms.redness || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, redness: value }))}
+            isJointSymptom={true}
           />
           
           <SymptomScaleInput
             title="熱感"
             value={localSymptoms.warmth || 0}
             onValueChange={(value) => setLocalSymptoms(prev => ({ ...prev, warmth: value }))}
+            isJointSymptom={true}
           />
         </ScrollView>
         
@@ -328,6 +347,7 @@ const DetailedSymptomScreen = ({ navigation }) => {
           title="朝のこわばり"
           value={sleep.morning_stiffness || 1}
           onValueChange={(value) => setSleep(prev => ({ ...prev, morning_stiffness: value }))}
+          isJointSymptom={true}
         />
       </View>
 

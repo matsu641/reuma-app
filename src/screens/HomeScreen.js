@@ -32,7 +32,7 @@ const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (
 const TodayStatusCard = ({ painScore, medicationCount, medicationTaken, weatherAlert }) => {
   const getPainLevelText = (score) => {
     if (score === null || score === undefined) return '未記録';
-    const levels = { 0: '良い', 1: '普通', 2: '悪い' };
+    const levels = { 0: 'なし', 1: '軽度', 2: '重度' };
     return levels[score] || '未記録';
   };
 

@@ -275,7 +275,7 @@ const HomeScreen = ({ navigation }) => {
           <QuickActionCard
             title="生活パターン分析"
             subtitle="症状との相関を分析"
-            icon="analytics"
+            icon="bar-chart-outline"
             color="#E91E63"
             onPress={() => navigation.navigate('LifePatternAnalysis')}
           />

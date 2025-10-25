@@ -99,9 +99,9 @@ const JointMapView = ({ jointSymptoms, onJointPress }) => {
         <Text style={styles.legendTitle}>症状レベル</Text>
         <View style={styles.legendItems}>
           {[
-            { level: 0, label: 'なし', color: '#4CAF50' },
-            { level: 1, label: '軽度', color: '#FF9800' },
-            { level: 2, label: '重度', color: '#F44336' }
+            { level: 1, label: '軽度', color: '#FFC107' },
+            { level: 2, label: '中度', color: '#FF8C00' },
+            { level: 3, label: '重度', color: '#F44336' }
           ].map(({ level, label, color }) => (
             <View key={level} style={styles.legendItem}>
               <View 
@@ -120,18 +120,18 @@ const JointMapView = ({ jointSymptoms, onJointPress }) => {
 };
 
 const SymptomScaleInput = ({ title, value, onValueChange, isJointSymptom = false }) => {
-  // 関節症状用の表現
+  // 関節症状用の表現（デフォルト：なし＝未入力）
   const jointLevels = [
-    { value: 0, label: 'なし', color: colors.success },
-    { value: 1, label: '軽度', color: colors.warning },
-    { value: 2, label: '重度', color: colors.danger }
+    { value: 1, label: '軽度', color: '#FFC107' },
+    { value: 2, label: '中度', color: '#FF8C00' },
+    { value: 3, label: '重度', color: colors.danger }
   ];
 
   // 全身症状用の表現
   const generalLevels = [
-    { value: 0, label: '良い', color: colors.success },
-    { value: 1, label: '普通', color: colors.warning },
-    { value: 2, label: '悪い', color: colors.danger }
+    { value: 1, label: '良い', color: colors.success },
+    { value: 2, label: '普通', color: colors.warning },
+    { value: 3, label: '悪い', color: colors.danger }
   ];
 
   const levels = isJointSymptom ? jointLevels : generalLevels;

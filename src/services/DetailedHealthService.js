@@ -283,28 +283,28 @@ class DetailedHealthService {
     return 'none';
   }
 
-  // 症状の色取得（3段階評価対応）
+  // 症状の色取得（3段階評価対応：軽度・中度・重度）
   getSymptomColor(symptom, level) {
-    // 0: 良い（緑）, 1: 普通（黄）, 2: 悪い（赤）
+    // 1: 軽度（黄）, 2: 中度（オレンジ）, 3: 重度（赤）、0または未定義: なし（グレー）
     const colors = {
-      0: '#4CAF50', // 良い - 緑
-      1: '#FF9800', // 普通 - オレンジ  
-      2: '#F44336'  // 悪い - 赤
+      1: '#FFC107', // 軽度 - 黄色
+      2: '#FF8C00', // 中度 - ダークオレンジ  
+      3: '#F44336'  // 重度 - 赤
     };
-    return colors[level] || '#999';
+    return colors[level] || 'rgba(224, 224, 224, 0.8)'; // なし - 薄いグレー
   }
 
-  // 関節の表示サイズ取得（3段階評価対応）
+  // 関節の表示サイズ取得（3段階評価対応：軽度・中度・重度）
   getJointDisplaySize(joint, level) {
     const baseSize = this.jointAreas[joint]?.size || 'medium';
     const sizeMap = {
-      small: { base: 12, sizes: [12, 15, 18] },    // 小さい関節
-      medium: { base: 16, sizes: [16, 20, 24] },   // 中程度の関節  
-      large: { base: 20, sizes: [20, 25, 30] }     // 大きい関節
+      small: { base: 10, sizes: { 0: 10, 1: 12, 2: 15, 3: 18 } },    // 小さい関節
+      medium: { base: 14, sizes: { 0: 14, 1: 16, 2: 20, 3: 24 } },   // 中程度の関節  
+      large: { base: 18, sizes: { 0: 18, 1: 20, 2: 25, 3: 30 } }     // 大きい関節
     };
     
     const config = sizeMap[baseSize];
-    return config.sizes[level] || config.base;
+    return config.sizes[level] || config.base; // 0または未定義の場合はベースサイズ
   }
 }
 

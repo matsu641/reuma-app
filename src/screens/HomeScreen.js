@@ -267,7 +267,7 @@ const HomeScreen = ({ navigation }) => {
           <QuickActionCard
             title="検査値入力"
             subtitle="CRP・ESR・MMP-3"
-            icon="analytics-outline"
+            icon="create-outline"
             color={colors.accent}
             onPress={() => navigation.navigate('LabValues')}
           />

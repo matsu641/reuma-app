@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, commonStyles } from '../utils/styles';
 import { formatDateJapanese, formatDate } from '../utils/dateUtils';
 import DatabaseService from '../services/DatabaseService';
+import DetailedHealthService from '../services/DetailedHealthService';
 import WeatherService from '../services/WeatherService';
 import SymptomRecorder from '../components/SymptomRecorder';
 import { MedicationTracker } from '../components/MedicationTracker';
@@ -31,14 +32,14 @@ const QuickActionCard = ({ title, subtitle, icon, color, onPress }) => (
 
 const TodayStatusCard = ({ painScore, medicationCount, medicationTaken, weatherAlert }) => {
   const getPainLevelText = (score) => {
-    if (score === null || score === undefined) return '未記録';
-    const levels = { 0: 'なし', 1: '軽度', 2: '重度' };
+    if (score === null || score === undefined || score === 0) return '未記録';
+    const levels = { 1: '軽度', 2: '中度', 3: '重度' };
     return levels[score] || '未記録';
   };
 
   const getPainColor = (score) => {
-    if (score === null || score === undefined) return colors.gray;
-    const levelColors = { 0: colors.success, 1: colors.warning, 2: colors.danger };
+    if (score === null || score === undefined || score === 0) return colors.gray;
+    const levelColors = { 1: '#FFC107', 2: '#FF8C00', 3: colors.danger };
     return levelColors[score] || colors.gray;
   };
 
@@ -112,9 +113,30 @@ const HomeScreen = ({ navigation }) => {
     try {
       const today = formatDate(new Date());
       
-      // 今日の症状記録を取得
+      // 今日の症状記録を取得（基本記録と詳細記録の両方をチェック）
       const symptoms = await DatabaseService.getSymptomLogs(today, today);
-      const todaySymptom = symptoms.length > 0 ? symptoms[0] : null;
+      let todaySymptom = symptoms.length > 0 ? symptoms[0] : null;
+      
+      // 詳細症状記録もチェック
+      try {
+        const detailedLogs = await DetailedHealthService.getDetailedSymptomLogs(1);
+        const todayDetailedLog = detailedLogs.find(log => log.date === today);
+        if (todayDetailedLog && !todaySymptom) {
+          // 詳細記録から基本症状データを作成
+          const jointPains = Object.values(todayDetailedLog.jointSymptoms || {})
+            .map(s => s.pain || 0)
+            .filter(pain => pain > 0);
+          const avgPain = jointPains.length > 0 
+            ? Math.round(jointPains.reduce((sum, pain) => sum + pain, 0) / jointPains.length)
+            : 0;
+          
+          if (avgPain > 0) {
+            todaySymptom = { pain_score: avgPain };
+          }
+        }
+      } catch (detailError) {
+        console.error('Error loading detailed symptoms:', detailError);
+      }
       
       // 今日の服薬状況を取得
       const medications = await DatabaseService.getMedications();

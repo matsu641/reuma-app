@@ -273,7 +273,9 @@ const DetailedSymptomScreen = ({ navigation }) => {
   };
 
   const calculateOverallPainScore = () => {
-    const jointPains = Object.values(jointSymptoms).map(s => s.pain || 0);
+    const jointPains = Object.values(jointSymptoms)
+      .map(s => s.pain || 0)
+      .filter(pain => pain > 0); // 0（症状なし）を除外
     if (jointPains.length === 0) return 0;
     return Math.round(jointPains.reduce((sum, pain) => sum + pain, 0) / jointPains.length);
   };

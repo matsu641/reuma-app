@@ -164,6 +164,48 @@ const SymptomScaleInput = ({ title, value, onValueChange, isJointSymptom = false
   );
 };
 
+const TipsSection = () => {
+  const tips = [
+    {
+      icon: '📝',
+      title: '記録のタイミング',
+      content: '毎日同じ時間に記録することで、より正確な変化を把握できます'
+    },
+    {
+      icon: '🎯',
+      title: '症状の感じ方',
+      content: '昨日と比べて今日はどうか？を意識して記録しましょう'
+    },
+    {
+      icon: '📊',
+      title: 'パターンを見つける',
+      content: '天気や薬の服用タイミングとの関連性を観察しましょう'
+    },
+    {
+      icon: '💡',
+      title: 'メモ活用',
+      content: '新しい症状や気づいたことは詳しくメモに残しましょう'
+    },
+  ];
+
+  return (
+    <View style={styles.tipsContainer}>
+      <Text style={styles.sectionTitle}>症状記録・体調管理のコツ</Text>
+      <View style={styles.tipsContent}>
+        {tips.map((tip, index) => (
+          <View key={index} style={styles.tipItem}>
+            <Text style={styles.tipIcon}>{tip.icon}</Text>
+            <View style={styles.tipTextContainer}>
+              <Text style={styles.tipTitle}>{tip.title}</Text>
+              <Text style={styles.tipContent}>{tip.content}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 const JointSymptomModal = ({ visible, joint, jointLabel, symptoms, onSave, onClose }) => {
   const [localSymptoms, setLocalSymptoms] = useState(symptoms || {});
 
@@ -355,12 +397,12 @@ const DetailedSymptomScreen = ({ navigation }) => {
 
       {/* メモ */}
       <View style={commonStyles.card}>
-        <Text style={styles.sectionTitle}>メモ</Text>
+        <Text style={styles.sectionTitle}>メモ（任意）</Text>
         <TextInput
           style={styles.notesInput}
           value={notes}
           onChangeText={setNotes}
-          placeholder="今日の体調について詳しく記録してください..."
+          placeholder="今日の体調について詳しく記録してください"
           multiline
           numberOfLines={4}
           textAlignVertical="top"
@@ -376,6 +418,11 @@ const DetailedSymptomScreen = ({ navigation }) => {
           {isLoading ? '保存中...' : '症状記録を保存'}
         </Text>
       </TouchableOpacity>
+
+      {/* コツセクション */}
+      <View style={commonStyles.card}>
+        <TipsSection />
+      </View>
 
       <JointSymptomModal
         visible={modalVisible}
@@ -758,6 +805,45 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '500',
     color: colors.textSecondary,
+  },
+
+  // コツセクション
+  tipsContainer: {
+    
+  },
+  
+  tipsContent: {
+    marginTop: spacing.sm,
+  },
+  
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.sm,
+  },
+  
+  tipIcon: {
+    fontSize: 20,
+    marginRight: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  
+  tipTextContainer: {
+    flex: 1,
+  },
+  
+  tipTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  
+  tipContent: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 });
 
